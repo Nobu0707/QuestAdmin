@@ -1,0 +1,10 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="questadmin"
+version="${version}"
+displayName="QuestAdmin"
+authors="nobu0707"
+description='''Quest definition storage foundation for QuestAdmin.'''

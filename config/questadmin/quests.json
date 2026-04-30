@@ -1,0 +1,19 @@
+[
+  {
+    "id": "wheat_delivery_001",
+    "title": "小麦の納品",
+    "description": "小麦を64個納品してください。",
+    "type": "ITEM_DELIVERY",
+    "requirement": {
+      "itemId": "minecraft:wheat",
+      "amount": 64
+    },
+    "reward": {
+      "money": 500
+    },
+    "repeatable": false,
+    "enabled": true,
+    "createdAt": 1777516775634,
+    "updatedAt": 1777516775634
+  }
+]
