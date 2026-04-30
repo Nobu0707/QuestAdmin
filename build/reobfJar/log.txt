@@ -122,6 +122,7 @@ Adding Libraries to Inheritance
 Reading Input: /home/yoshinobu/projects/QuestAdmin/build/libs/questadmin-0.1.0.jar
 Adding input to inheritance map
 Processing entries
+Conflicting propagated mapping for net/minecraft/world/entity/LivingEntity/lambda$addAdditionalSaveData$3(Lnet/minecraft/nbt/CompoundTag;Lnet/minecraft/nbt/Tag;)V from net/minecraft/world/entity/player/Player/lambda$addAdditionalSaveData$3(Lnet/minecraft/nbt/CompoundTag;Lnet/minecraft/nbt/Tag;)V: lambda$addAdditionalSaveData$3 -> m_219754_
 Adding extras
 Sorting
 Writing Output: /home/yoshinobu/projects/QuestAdmin/build/reobfJar/output.jar
@@ -136,6 +137,10 @@ Writing Output: /home/yoshinobu/projects/QuestAdmin/build/reobfJar/output.jar
   net/nobu0707/questadmin/command/QuestCommands.class
   net/nobu0707/questadmin/quest/
   net/nobu0707/questadmin/quest/PlayerQuestState.class
+  net/nobu0707/questadmin/quest/PlayerQuestStorage$1.class
+  net/nobu0707/questadmin/quest/PlayerQuestStorage$JsonParser.class
+  net/nobu0707/questadmin/quest/PlayerQuestStorage$LoadResult.class
+  net/nobu0707/questadmin/quest/PlayerQuestStorage.class
   net/nobu0707/questadmin/quest/QuestDefinition.class
   net/nobu0707/questadmin/quest/QuestRequirement.class
   net/nobu0707/questadmin/quest/QuestReward.class
