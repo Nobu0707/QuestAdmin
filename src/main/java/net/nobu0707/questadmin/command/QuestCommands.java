@@ -9,6 +9,7 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.nobu0707.questadmin.QuestAdminMod;
+import net.nobu0707.questadmin.gui.QuestMenuProvider;
 import net.nobu0707.questadmin.quest.PlayerQuestState;
 import net.nobu0707.questadmin.quest.PlayerQuestStorage;
 import net.nobu0707.questadmin.quest.QuestCompletionService;
@@ -59,6 +60,7 @@ public final class QuestCommands {
                                 )))));
 
         dispatcher.register(Commands.literal("quest")
+                .executes(context -> openQuestGui(context.getSource()))
                 .then(Commands.literal("list")
                         .executes(context -> listPlayerQuests(context.getSource())))
                 .then(Commands.literal("complete")
@@ -134,6 +136,12 @@ public final class QuestCommands {
         return enabledQuests.size();
     }
 
+    private static int openQuestGui(CommandSourceStack source) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        QuestMenuProvider.openQuestList(player);
+        return 1;
+    }
+
     private static int completeQuest(CommandSourceStack source, String questId) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
         QuestCompletionService.CompletionResult result = createCompletionService().completeItemDeliveryQuest(player, questId);
@@ -147,7 +155,7 @@ public final class QuestCommands {
                 false
         );
         source.sendSuccess(
-                () -> Component.literal("QuestAdmin: 報酬受け取り処理はまだ未実装です。"),
+                () -> Component.literal("QuestAdmin: 報酬は /quest claim " + result.quest().getId() + " で受け取れます。"),
                 false
         );
         return 1;
