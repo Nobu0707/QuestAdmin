@@ -3,26 +3,31 @@
 ## 1. 現在の状態
 
 QuestAdmin は Minecraft Forge 1.20.1 向けのクエスト管理MODです。
-運営側がクエストを管理し、プレイヤーがクエストを達成すると Lightman's Currency の銀行口座へ報酬が支払われる構成です。
+運営側がクエストを管理し、プレイヤーがクエストを達成すると Lightman's Currency の銀行口座へ報酬が支払われます。
 
-現在は **Phase 9 完了扱い** です。
+現在は **Phase 10 完了 / v1.0.0 MVP完成版** です。
 
-## 2. 開発環境
+## 2. 対応環境
 
 | 項目 | 内容 |
 |---|---|
 | Minecraft | 1.20.1 |
-| Forge | 47.x 系、確認済みは 47.4.20 |
+| Forge | 47.x |
 | Java | 17 |
-| 開発環境 | WSL Ubuntu + VS Code |
 | MOD名 | QuestAdmin |
 | mod id | questadmin |
-| 現在バージョン | 0.9.0 |
-| 経済MOD | Lightman's Currency |
+| 現在バージョン | 1.0.0 |
+| 必須経済MOD | Lightman's Currency |
 | Lightman's Currency mod id | lightmanscurrency |
-| 使用jar | lightmanscurrency-1.20.1-2.3.0.4e.jar |
+| 開発時参照jar | lightmanscurrency-1.20.1-2.3.0.4e.jar |
 
-## 3. 重要な前提
+## 3. 開発環境
+
+- WSL Ubuntu
+- VS Code
+- Gradle Wrapper
+- Java 17
+- ForgeGradle 6.x
 
 このプロジェクトは **Forge 1.20.1 用** です。Fabric関連は使用しません。
 
@@ -36,191 +41,59 @@ QuestAdmin は Minecraft Forge 1.20.1 向けのクエスト管理MODです。
 
 Forge 1.20.1 では、MOD初期化は `@Mod("questadmin")` を起点にします。
 
-## 4. 完了済みPhase
+## 4. 完了済みPhase一覧
 
-### Phase 1: MOD基盤とデータ構造
+- Phase 1: MOD基盤とデータ構造
+- Phase 1.5: Forge 1.20.1 整合確認
+- Phase 2: コマンド基盤
+- Phase 3: プレイヤー進行状況保存
+- Phase 4: アイテム納品クエスト処理
+- Phase 5A: EconomyBridge 土台
+- Phase 5B-1: Lightman's Currency 連携
+- Phase 6: プレイヤー用GUI
+- Phase 7: 管理者用クエスト一覧GUI
+- Phase 8: ITEM_DELIVERY クエスト作成
+- Phase 9: 既存クエスト編集とMVP安定化
+- Phase 10: v1.0.0 MVP配布準備
 
-完了済み。
+## 5. 実装済み機能一覧
 
-実装済み内容:
-
-- QuestDefinition
-- QuestType
-- QuestRequirement
-- QuestReward
-- QuestStatus
-- PlayerQuestState
-- QuestStorage
-- quests.json の保存・読み込み
-- サンプルクエスト生成
-
-保存先:
-
-```text
-config/questadmin/quests.json
-```
-
-### Phase 1.5: Forge 1.20.1整合確認
-
-完了済み。
-
-確認済み内容:
-
-- Forge 1.20.1 対応
-- Java 17 対応
-- Gradle Wrapper 正常化
-- pack.mcmeta 追加
-- Fabric要素除去
-- Forgeサーバー起動確認
-
-### Phase 2: コマンド基盤
-
-完了済み。
-
-実装済みコマンド:
-
-```text
-/questadmin reload
-/questadmin list
-/quest list
-```
-
-### Phase 3: プレイヤー進行状況保存
-
-完了済み。
-
-実装済み内容:
-
-- PlayerQuestStorage
-- player_quests.json の保存・読み込み
-- プレイヤーUUIDごとの状態保存
-- クエストIDごとの状態保存
-- COMPLETED / CLAIMED 状態保存
-- 再起動後の復元確認
-
-保存先:
-
-```text
-config/questadmin/player_quests.json
-```
-
-### Phase 4: アイテム納品クエスト処理
-
-完了済み。
-
-実装済みコマンド:
-
-```text
-/quest complete <questId>
-```
-
-確認済み内容:
-
+- `QuestDefinition` / `QuestRequirement` / `QuestReward` / `QuestType` / `QuestStatus`
+- `quests.json` の保存・読み込み
+- `player_quests.json` の保存・読み込み
+- ITEM_DELIVERY クエスト
 - 必要アイテム所持数確認
-- 必要アイテム消費
-- COMPLETED 状態保存
+- 完了時の必要アイテム消費
+- COMPLETED / CLAIMED 状態保存
 - repeatable=false の再完了防止
-- 不正questIdでクラッシュしない
+- Lightman's Currency 銀行口座への報酬入金
+- 入金成功時のみ CLAIMED へ変更
+- 二重claim防止
+- プレイヤー用GUI
+- 管理者用GUI
+- enabled の有効/無効切替
+- 削除確認GUI経由のクエスト削除
+- チャット入力ステップ方式のクエスト作成
+- チャット入力ステップ方式のクエスト編集
+- 作成/編集キャンセル
+- 管理者操作のOP権限レベル2確認
 
-### Phase 5A: EconomyBridge 土台
+## 6. 未実装機能一覧
 
-完了済み。
+- 新しいクエスト種別
+- 討伐クエスト
+- 採掘クエスト
+- 探索クエスト
+- デイリークエスト
+- クエストツリー
+- 前提クエスト
+- 村人/NPC連携
+- Web管理画面
+- MySQL保存
+- 複数経済MOD対応
+- Lightman's Currency 以外の経済MOD対応
 
-実装済み内容:
-
-- EconomyBridge
-- DummyEconomyBridge
-- EconomyService
-- `/quest claim <questId>`
-- `/questadmin economy status`
-- 経済MOD未接続時は CLAIMED にしない安全処理
-
-### Phase 5B-1: Lightman's Currency 連携
-
-完了済み。
-
-実装済み内容:
-
-- LightmansCurrencyEconomyBridge
-- Lightman's Currency 銀行口座への直接入金
-- `/quest claim <questId>` による報酬受け取り
-- 入金成功時のみ CLAIMED に変更
-- 二重受け取り防止
-- mods.toml に lightmanscurrency 依存追加
-
-重要な修正履歴:
-
-- `mods.toml` の `versionRange=""` が原因でForge起動時に依存エラーが発生した。
-- `versionRange="[0,)"` に修正して起動成功。
-- Lightman's Currency がサーバー `mods` フォルダに入っていない場合、QuestAdminは起動しない。
-
-### Phase 6: プレイヤー用GUI
-
-完了扱い。
-
-実装済み内容:
-
-- `/quest` でプレイヤー用GUIを開く
-- GUIからクエスト一覧を確認
-- GUIからクエスト完了処理
-- GUIから報酬受け取り処理
-- クエスト状態表示
-  - 未完了
-  - 完了済み
-  - 報酬受取済み
-- `/quest complete` 後のメッセージ修正
-- MODバージョンをPhase 6向けに更新
-
-### Phase 7: 管理者用クエスト一覧GUI
-
-完了扱い。
-
-実装済み内容:
-
-- `/questadmin` で管理者用GUIを開く
-- GUIで登録済みクエスト一覧を確認
-- GUIでクエスト詳細を確認
-- GUIで enabled の有効/無効を切り替え
-- enabled 変更を `quests.json` に保存
-- 削除確認GUI経由でクエスト削除
-- 削除後に `quests.json` へ保存
-- 新規クエスト作成GUIへの導線のみ追加
-- MODバージョンをPhase 7向けに更新
-
-### Phase 8: ITEM_DELIVERYクエスト作成
-
-完了扱い。
-
-実装済み内容:
-
-- 管理者GUIの「新規クエスト作成」からチャット入力方式で作成開始
-- プレイヤーUUIDごとの作成セッション管理
-- questId / title / description / itemId / amount / reward money / repeatable / enabled の段階入力
-- questId重複、itemId存在、amount、reward、boolean の入力値チェック
-- チャットの `cancel` と `/questadmin create cancel` による作成キャンセル
-- 作成完了時に `QuestDefinition` を追加して `quests.json` に保存
-- 作成後に管理者GUIへ戻る
-- MODバージョンをPhase 8向けに更新
-
-### Phase 9: MVP仕上げ
-
-完了扱い。
-
-実装済み内容:
-
-- `/questadmin edit <questId>` による既存クエスト編集
-- チャット入力ステップ方式による title / description / itemId / amount / reward money / repeatable / enabled の編集
-- `-` による現在値維持
-- 最終確認ステップ
-- チャットの `cancel` と `/questadmin edit cancel` による編集キャンセル
-- 編集中チャットの通常送信抑止
-- updatedAt の更新
-- 編集内容を `quests.json` に保存
-- 管理者GUI詳細画面から編集開始
-- README.md 作成
-- MODバージョンを 0.9.0 に更新
-
-## 5. 現在の主要コマンド
+## 7. コマンド一覧
 
 ### プレイヤー用
 
@@ -233,15 +106,18 @@ config/questadmin/player_quests.json
 
 ### 管理者用
 
+OP権限レベル2以上が必要です。
+
 ```text
+/questadmin
 /questadmin reload
 /questadmin list
+/questadmin economy status
+/questadmin progress <player>
+/questadmin progress mark <player> <questId> <status>
 /questadmin edit <questId>
 /questadmin edit cancel
 /questadmin create cancel
-/questadmin progress <player>
-/questadmin progress mark <player> <questId> <status>
-/questadmin economy status
 ```
 
 `/questadmin economy status` の期待例:
@@ -252,7 +128,23 @@ available: true
 currency: lightmanscurrency
 ```
 
-## 6. 重要なファイル
+## 8. 保存ファイル
+
+クエスト定義:
+
+```text
+config/questadmin/quests.json
+```
+
+プレイヤー進行状況:
+
+```text
+config/questadmin/player_quests.json
+```
+
+手動でJSONを編集する場合はバックアップを推奨します。
+
+## 9. 重要なファイル
 
 リポジトリ直下:
 
@@ -260,6 +152,9 @@ currency: lightmanscurrency
 SPEC.md
 ROADMAP.md
 CLAUDE.md
+README.md
+HANDOFF.md
+RELEASE_NOTES.md
 ```
 
 リソース:
@@ -278,206 +173,97 @@ libs/lightmanscurrency-1.20.1-2.3.0.4e.jar
 サーバー側 mods 例:
 
 ```text
-~/servers/forge-1.20.1/mods/questadmin-0.9.0.jar
-~/servers/forge-1.20.1/mods/lightmanscurrency-1.20.1-2.3.0.4e.jar
+questadmin-1.0.0.jar
+lightmanscurrency-1.20.1-2.3.0.4e.jar
 ```
 
-## 7. 別PCへ移行するときに必要なもの
+QuestAdmin jar に Lightman's Currency 本体は同梱しません。
 
-必須:
-
-- Java 17
-- Git
-- VS Code
-- WSL Ubuntu
-- Gradle Wrapper一式
-  - gradlew
-  - gradlew.bat
-  - gradle/wrapper/gradle-wrapper.jar
-  - gradle/wrapper/gradle-wrapper.properties
-- プロジェクトソース一式
-- `libs/lightmanscurrency-1.20.1-2.3.0.4e.jar`
-
-注意:
-
-`libs/` が `.gitignore` で除外されている場合、Lightman's Currency jar はGitHubに上がりません。
-別PCでは手動で `libs/lightmanscurrency-1.20.1-2.3.0.4e.jar` を配置してください。
-
-## 8. 別PCでの復元手順
-
-### 1. Java 17確認
+## 10. ビルド手順
 
 ```bash
-java -version
-javac -version
-```
-
-### 2. リポジトリ取得
-
-```bash
-cd ~/projects
-git clone <QuestAdminのGitHub URL>
-cd QuestAdmin
-```
-
-### 3. Lightman's Currency jar配置
-
-```bash
-mkdir -p libs
-```
-
-以下を配置:
-
-```text
-libs/lightmanscurrency-1.20.1-2.3.0.4e.jar
-```
-
-### 4. ビルド確認
-
-```bash
-./gradlew --version
 ./gradlew clean build
 ```
 
-### 5. jar確認
+成果物:
 
-```bash
-ls -la build/libs
-jar tf build/libs/*.jar | grep -E "mods.toml|pack.mcmeta"
+```text
+build/libs/questadmin-1.0.0.jar
 ```
 
-### 6. Fabric要素確認
+jar確認:
+
+```bash
+jar tf build/libs/*.jar | grep -E "mods.toml|pack.mcmeta"
+unzip -p build/libs/*.jar META-INF/mods.toml | grep -E "modId|version|lightmanscurrency" -n
+```
+
+Fabric要素確認:
 
 ```bash
 grep -R "fabric\|FabricLoader\|ModInitializer\|net.fabricmc" -n src build.gradle settings.gradle gradle.properties 2>/dev/null
 ```
 
-基本的にはヒットなしが理想です。
+## 11. 別PC移行時の確認手順
 
-### 7. バージョン確認
+1. Java 17 を用意します。
+2. リポジトリを取得します。
+3. Gradle Wrapper 一式があることを確認します。
+4. `libs/lightmanscurrency-1.20.1-2.3.0.4e.jar` を配置します。
+5. `./gradlew clean build` を実行します。
+6. `build/libs/questadmin-1.0.0.jar` が生成されることを確認します。
+7. `jar tf` で `META-INF/mods.toml` と `pack.mcmeta` を確認します。
+8. Fabric要素確認grepを実行します。
 
-```bash
-grep -R "<旧バージョン番号>" -n . --exclude-dir=build --exclude-dir=.gradle --exclude-dir=.git
-grep -R "0.1.0" -n . --exclude-dir=build --exclude-dir=.gradle --exclude-dir=.git
-```
+`libs/` が `.gitignore` で除外されている場合、Lightman's Currency jar はGitHubに上がりません。
+別PCでは手動で配置してください。
 
-## 9. サーバー起動確認
+## 12. 実機確認手順
 
-Forgeサーバーの `mods` フォルダに以下を入れます。
+1. Forge 1.20.1 サーバーを用意します。
+2. サーバーの `mods` フォルダへ Lightman's Currency を入れます。
+3. サーバーの `mods` フォルダへ `questadmin-1.0.0.jar` を入れます。
+4. クライアント側にも Lightman's Currency と QuestAdmin を入れます。
+5. サーバーを起動して接続します。
+6. `/questadmin economy status` で `available=true` を確認します。
+7. `/questadmin` で管理者GUIが開くことを確認します。
+8. `/quest` でプレイヤーGUIが開くことを確認します。
+9. クエストを新規作成できることを確認します。
+10. 作成したクエストを編集できることを確認します。
+11. enabled 切替が反映されることを確認します。
+12. 削除確認付きで削除できることを確認します。
+13. `/quest list` に有効クエストのみ表示されることを確認します。
+14. `/quest complete <questId>` で完了できることを確認します。
+15. `/quest claim <questId>` で報酬が入金されることを確認します。
+16. 二重claimできないことを確認します。
+17. 再起動後も `quests.json` と `player_quests.json` が維持されることを確認します。
+18. `latest.log` に questadmin 由来の ERROR が出ていないことを確認します。
 
-```text
-questadmin-0.9.0.jar
-lightmanscurrency-1.20.1-2.3.0.4e.jar
-```
+## 13. Lightman's Currency連携状況
 
-起動後、以下を確認します。
+- `mods.toml` に `lightmanscurrency` の必須依存を定義済みです。
+- `versionRange="[0,)"` を指定しています。
+- Lightman's Currency がサーバー `mods` フォルダに入っていない場合、QuestAdminは起動しません。
+- 報酬は Lightman's Currency 銀行口座へ直接入金します。
+- 入金成功時のみ `CLAIMED` に変更します。
 
-```text
-/questadmin economy status
-/questadmin reload
-/questadmin list
-/quest
-```
-
-## 10. MVP手動確認手順
-
-1. サーバー起動
-2. クライアント接続
-3. `/questadmin economy status`
-4. `available=true` を確認
-5. `/quest` でGUIが開くことを確認
-6. 小麦不足状態で wheat_delivery_001 をクリックし、完了できないことを確認
-7. `/give @p minecraft:wheat 64`
-8. GUIから wheat_delivery_001 を完了
-9. 状態が COMPLETED になることを確認
-10. GUIから報酬受け取り
-11. Lightman's Currency 銀行口座に入金されることを確認
-12. 状態が CLAIMED になることを確認
-13. 再度クリックして二重受け取りできないことを確認
-14. サーバー再起動
-15. CLAIMED 状態が維持されることを確認
-16. `/questadmin` で管理者GUIを開くことを確認
-17. 管理者GUIで enabled 切替が保存されることを確認
-18. 管理者GUIから新規クエスト作成を開始できることを確認
-19. `/questadmin edit <questId>` で既存クエストを編集できることを確認
-20. 編集後に `/questadmin list`、`/quest list`、`/quest` GUIへ反映されることを確認
-
-## 11. 既知の注意点
-
-### Lightman's Currency の残高表記
-
-銀行口座で `1e5g` のような表記が出る場合があります。
-これは異常とは限りません。
-Lightman's Currency はコイン単位を組み合わせて表示します。
-
-重要なのは以下です。
-
-- claim 前後で報酬額相当だけ増えているか
-- `/quest claim` の2回目で増えないか
-- CLAIMED状態が保存されるか
-
-### mods.toml の Lightman's Currency 依存
-
-依存定義には必ず versionRange を入れてください。
-
-推奨:
-
-```toml
-[[dependencies.questadmin]]
-    modId="lightmanscurrency"
-    mandatory=true
-    versionRange="[0,)"
-    ordering="AFTER"
-    side="BOTH"
-```
-
-`versionRange=""` だと、Lightman's Currency が入っていても Forge の依存解決でクラッシュします。
-
-### サーバーとクライアントのMOD
-
-Lightman's Currency はサーバー・クライアント両方に入れる前提で扱ってください。
-QuestAdminもGUIを実装したため、マルチ環境ではクライアント側導入が必要になる可能性が高いです。
-
-### MVP時点の制限
+## 14. 既知の制限
 
 - 対応クエスト種別は `ITEM_DELIVERY` のみです。
 - 報酬は Lightman's Currency の銀行口座入金のみです。
 - 既存クエストの `id` と `type` は編集できません。
 - 既存 progress はクエスト削除・編集時にも変更しません。
-- Web管理画面、MySQL保存、複数経済MOD対応は未実装です。
+- Lightman's Currency 以外の経済MODには対応していません。
+- Web管理画面、MySQL保存、村人/NPC連携は未実装です。
+- Lightman's Currency の銀行口座表示で `1e5g` のような表記になる場合がありますが、残高増減と二重claim防止を確認してください。
 
-## 12. 次のPhase候補
+## 15. 次期Phase候補
 
-次は **Phase 10：MVP検証・配布準備** が候補です。
+- 実機テスト結果に基づく不具合修正
+- 管理者GUIのページングや検索
+- クエスト一覧の表示改善
+- JSONバックアップ/リストア補助
+- 新しいクエスト種別の設計検討
+- 村人/NPC連携の設計検討
 
-目的:
-
-- 実機でMVP一連の操作を確認する
-- エラーログとユーザー向け文言を整える
-- 配布jarと導入手順を固定する
-
-Phase 9時点では討伐・採掘・探索などの新種別、複数経済MOD対応、Web管理画面は未実装です。
-
-## 13. 次回作業前チェック
-
-別PCで作業を始める前に、以下を確認してください。
-
-```bash
-cd ~/projects/QuestAdmin
-git status
-./gradlew clean build
-grep -R "fabric\|FabricLoader\|ModInitializer\|net.fabricmc" -n src build.gradle settings.gradle gradle.properties 2>/dev/null
-```
-
-サーバー起動後:
-
-```text
-/questadmin economy status
-/questadmin reload
-/questadmin
-/questadmin create cancel
-/questadmin edit cancel
-/quest
-```
-
-ここまで問題なければ、次のPhaseへ進めます。
+Phase 10時点では、新機能追加ではなく v1.0.0 MVP 配布準備までを完了しています。
