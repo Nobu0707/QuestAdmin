@@ -1,6 +1,7 @@
 package net.nobu0707.questadmin.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -10,8 +11,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.nobu0707.questadmin.QuestAdminMod;
 import net.nobu0707.questadmin.quest.PlayerQuestState;
 import net.nobu0707.questadmin.quest.PlayerQuestStorage;
+import net.nobu0707.questadmin.quest.QuestCompletionService;
 import net.nobu0707.questadmin.quest.QuestDefinition;
 import net.nobu0707.questadmin.quest.QuestRequirement;
+import net.nobu0707.questadmin.quest.QuestRewardService;
 import net.nobu0707.questadmin.quest.QuestStatus;
 import net.nobu0707.questadmin.quest.QuestStorage;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -35,6 +38,9 @@ public final class QuestCommands {
                         .executes(context -> reloadQuests(context.getSource())))
                 .then(Commands.literal("list")
                         .executes(context -> listAdminQuests(context.getSource())))
+                .then(Commands.literal("economy")
+                        .then(Commands.literal("status")
+                                .executes(context -> showEconomyStatus(context.getSource()))))
                 .then(Commands.literal("progress")
                         .then(Commands.literal("mark")
                                 .then(Commands.argument("player", EntityArgument.player())
@@ -54,7 +60,19 @@ public final class QuestCommands {
 
         dispatcher.register(Commands.literal("quest")
                 .then(Commands.literal("list")
-                        .executes(context -> listPlayerQuests(context.getSource()))));
+                        .executes(context -> listPlayerQuests(context.getSource())))
+                .then(Commands.literal("complete")
+                        .then(Commands.argument("questId", StringArgumentType.word())
+                                .executes(context -> completeQuest(
+                                        context.getSource(),
+                                        StringArgumentType.getString(context, "questId")
+                                ))))
+                .then(Commands.literal("claim")
+                        .then(Commands.argument("questId", StringArgumentType.word())
+                                .executes(context -> claimQuestReward(
+                                        context.getSource(),
+                                        StringArgumentType.getString(context, "questId")
+                                )))));
     }
 
     private static int reloadQuests(CommandSourceStack source) {
@@ -86,7 +104,16 @@ public final class QuestCommands {
         return quests.size();
     }
 
-    private static int listPlayerQuests(CommandSourceStack source) {
+    private static int showEconomyStatus(CommandSourceStack source) {
+        List<String> statusLines = QuestAdminMod.getEconomyService().getStatusLines();
+        for (String statusLine : statusLines) {
+            source.sendSuccess(() -> Component.literal(statusLine), false);
+        }
+        return 1;
+    }
+
+    private static int listPlayerQuests(CommandSourceStack source) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
         List<QuestDefinition> enabledQuests = QuestAdminMod.getQuestStorage().getQuests().stream()
                 .filter(QuestDefinition::isEnabled)
                 .toList();
@@ -99,12 +126,46 @@ public final class QuestCommands {
 
         for (QuestDefinition quest : enabledQuests) {
             QuestRequirement requirement = quest.getRequirement();
-            source.sendSuccess(() -> Component.literal("- " + quest.getTitle()), false);
+            source.sendSuccess(() -> Component.literal("- " + quest.getTitle() + " [" + getQuestStatusLabel(player, quest) + "]"), false);
             source.sendSuccess(() -> Component.literal("  " + quest.getDescription()), false);
             source.sendSuccess(() -> Component.literal("  必要: " + requirement.getItemId() + " x" + requirement.getAmount()), false);
             source.sendSuccess(() -> Component.literal("  報酬: " + quest.getReward().getMoney()), false);
         }
         return enabledQuests.size();
+    }
+
+    private static int completeQuest(CommandSourceStack source, String questId) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        QuestCompletionService.CompletionResult result = createCompletionService().completeItemDeliveryQuest(player, questId);
+        if (!result.success()) {
+            source.sendFailure(Component.literal(result.message()));
+            return 0;
+        }
+
+        source.sendSuccess(
+                () -> Component.literal("QuestAdmin: クエスト「" + result.quest().getTitle() + "」を完了しました。"),
+                false
+        );
+        source.sendSuccess(
+                () -> Component.literal("QuestAdmin: 報酬受け取り処理はまだ未実装です。"),
+                false
+        );
+        return 1;
+    }
+
+    private static int claimQuestReward(CommandSourceStack source, String questId) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        QuestRewardService.ClaimResult result = createRewardService().claimReward(player, questId);
+        if (!result.success()) {
+            source.sendFailure(Component.literal(result.message()));
+            if (result.hasSecondaryMessage()) {
+                source.sendFailure(Component.literal(result.secondaryMessage()));
+            }
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(result.message()), false);
+        return 1;
     }
 
     private static int listPlayerProgress(CommandSourceStack source, ServerPlayer player) {
@@ -173,6 +234,32 @@ public final class QuestCommands {
                 .filter(quest -> quest.getId().equals(questId))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private static String getQuestStatusLabel(ServerPlayer player, QuestDefinition quest) {
+        return QuestAdminMod.getPlayerQuestStorage().getState(player.getUUID(), quest.getId())
+                .map(PlayerQuestState::getStatus)
+                .map(status -> switch (status) {
+                    case CLAIMED -> "報酬受取済み";
+                    case COMPLETED -> "完了済み";
+                    case NOT_STARTED -> "未完了";
+                })
+                .orElse("未完了");
+    }
+
+    private static QuestCompletionService createCompletionService() {
+        return new QuestCompletionService(
+                QuestAdminMod.getQuestStorage(),
+                QuestAdminMod.getPlayerQuestStorage()
+        );
+    }
+
+    private static QuestRewardService createRewardService() {
+        return new QuestRewardService(
+                QuestAdminMod.getQuestStorage(),
+                QuestAdminMod.getPlayerQuestStorage(),
+                QuestAdminMod.getEconomyService()
+        );
     }
 
     private static QuestStatus parseStatus(String statusName) {

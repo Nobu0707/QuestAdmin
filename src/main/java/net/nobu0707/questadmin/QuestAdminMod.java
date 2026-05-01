@@ -1,6 +1,8 @@
 package net.nobu0707.questadmin;
 
 import net.nobu0707.questadmin.command.QuestCommands;
+import net.nobu0707.questadmin.economy.EconomyService;
+import net.nobu0707.questadmin.economy.LightmansCurrencyEconomyBridge;
 import net.nobu0707.questadmin.quest.PlayerQuestStorage;
 import net.nobu0707.questadmin.quest.QuestStorage;
 import net.minecraftforge.common.MinecraftForge;
@@ -13,10 +15,12 @@ public final class QuestAdminMod {
 
     private static QuestStorage questStorage;
     private static PlayerQuestStorage playerQuestStorage;
+    private static EconomyService economyService;
 
     public QuestAdminMod() {
         initializeStorage();
         initializePlayerQuestStorage();
+        initializeEconomyService();
         MinecraftForge.EVENT_BUS.addListener(QuestCommands::register);
     }
 
@@ -48,5 +52,19 @@ public final class QuestAdminMod {
             return initializePlayerQuestStorage();
         }
         return playerQuestStorage;
+    }
+
+    public static synchronized EconomyService initializeEconomyService() {
+        if (economyService == null) {
+            economyService = new EconomyService(new LightmansCurrencyEconomyBridge());
+        }
+        return economyService;
+    }
+
+    public static synchronized EconomyService getEconomyService() {
+        if (economyService == null) {
+            return initializeEconomyService();
+        }
+        return economyService;
     }
 }

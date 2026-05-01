@@ -8,3 +8,10 @@ version="0.1.0"
 displayName="QuestAdmin"
 authors="nobu0707"
 description='''Quest definition storage foundation for QuestAdmin.'''
+
+[[dependencies.questadmin]]
+    modId="lightmanscurrency"
+    mandatory=true
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"

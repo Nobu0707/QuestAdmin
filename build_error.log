@@ -1,0 +1,21 @@
+> Task :clean
+> Task :compileJava FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Could not resolve all files for configuration ':compileClasspath'.
+   > Could not find :lightmanscurrency-1.20.1-2.3.0.4e:null_mapped_official_1.20.1.
+     Required by:
+         project :
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+
+* Get more help at https://help.gradle.org
+
+BUILD FAILED in 2s
+2 actionable tasks: 2 executed

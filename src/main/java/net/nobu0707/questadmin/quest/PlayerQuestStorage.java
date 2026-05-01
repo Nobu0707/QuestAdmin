@@ -98,10 +98,16 @@ public final class PlayerQuestStorage {
             throw new IllegalStateException("quest has already been claimed: " + questId);
         }
 
+        Optional<PlayerQuestState> previousState = getState(playerUuid, questId);
         long now = System.currentTimeMillis();
         long claimedAt = getState(playerUuid, questId).map(PlayerQuestState::getClaimedAt).orElse(0L);
         setState(playerUuid, questId, new PlayerQuestState(playerUuid, questId, QuestStatus.COMPLETED, now, claimedAt));
-        save();
+        try {
+            save();
+        } catch (IOException exception) {
+            restoreState(playerUuid, questId, previousState);
+            throw exception;
+        }
     }
 
     public void markClaimed(UUID playerUuid, String questId) throws IOException {
@@ -109,10 +115,16 @@ public final class PlayerQuestStorage {
             throw new IllegalStateException("quest has already been claimed: " + questId);
         }
 
+        Optional<PlayerQuestState> previousState = getState(playerUuid, questId);
         long now = System.currentTimeMillis();
         long completedAt = getState(playerUuid, questId).map(PlayerQuestState::getCompletedAt).filter(value -> value > 0).orElse(now);
         setState(playerUuid, questId, new PlayerQuestState(playerUuid, questId, QuestStatus.CLAIMED, completedAt, now));
-        save();
+        try {
+            save();
+        } catch (IOException exception) {
+            restoreState(playerUuid, questId, previousState);
+            throw exception;
+        }
     }
 
     public void markStatus(UUID playerUuid, String questId, QuestStatus status) throws IOException {
@@ -123,6 +135,23 @@ public final class PlayerQuestStorage {
                 setState(playerUuid, questId, new PlayerQuestState(playerUuid, questId, QuestStatus.NOT_STARTED, 0L, 0L));
                 save();
             }
+        }
+    }
+
+    private void restoreState(UUID playerUuid, String questId, Optional<PlayerQuestState> previousState) {
+        Map<String, PlayerQuestState> playerStates = states.get(playerUuid);
+        if (previousState.isPresent()) {
+            states.computeIfAbsent(playerUuid, ignored -> new LinkedHashMap<>()).put(questId, previousState.get());
+            return;
+        }
+
+        if (playerStates == null) {
+            return;
+        }
+
+        playerStates.remove(questId);
+        if (playerStates.isEmpty()) {
+            states.remove(playerUuid);
         }
     }
 
