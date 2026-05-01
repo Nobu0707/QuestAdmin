@@ -17,6 +17,7 @@ public final class AdminQuestDetailMenu extends ChestMenu {
     private static final int MENU_SIZE = ROWS * 9;
     private static final int DETAIL_SLOT = 10;
     private static final int TOGGLE_SLOT = 12;
+    private static final int EDIT_SLOT = 13;
     private static final int DELETE_SLOT = 14;
     private static final int BACK_SLOT = 16;
 
@@ -55,6 +56,11 @@ public final class AdminQuestDetailMenu extends ChestMenu {
                 sendResult(service.toggleEnabled(player, questId));
                 refreshDetailSlots();
                 broadcastChanges();
+                return;
+            }
+
+            if (slotId == EDIT_SLOT && clickType == ClickType.PICKUP) {
+                sendResult(service.startQuestEdit(player, questId));
                 return;
             }
 
@@ -98,6 +104,7 @@ public final class AdminQuestDetailMenu extends ChestMenu {
 
         questContainer.setItem(DETAIL_SLOT, AdminQuestMenuItemFactory.createDetailItem(quest));
         questContainer.setItem(TOGGLE_SLOT, AdminQuestMenuItemFactory.createToggleItem(quest));
+        questContainer.setItem(EDIT_SLOT, AdminQuestMenuItemFactory.createEditItem(quest));
         questContainer.setItem(DELETE_SLOT, AdminQuestMenuItemFactory.createDeleteItem(quest));
         questContainer.setItem(BACK_SLOT, AdminQuestMenuItemFactory.createBackItem());
     }

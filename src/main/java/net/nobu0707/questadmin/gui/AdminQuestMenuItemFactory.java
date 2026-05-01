@@ -29,6 +29,7 @@ public final class AdminQuestMenuItemFactory {
         lore.add(Component.literal("左クリック: 有効/無効を切り替え").withStyle(ChatFormatting.YELLOW));
         lore.add(Component.literal("右クリック: 詳細を開く").withStyle(ChatFormatting.GRAY));
         lore.add(Component.literal("Shiftクリック: 削除確認").withStyle(ChatFormatting.RED));
+        lore.add(Component.literal("編集: /questadmin edit " + quest.getId()).withStyle(ChatFormatting.AQUA));
         setLore(stack, lore);
         return stack;
     }
@@ -47,6 +48,19 @@ public final class AdminQuestMenuItemFactory {
         setLore(stack, List.of(
                 Component.literal("現在: " + getEnabledLabel(quest)).withStyle(getEnabledColor(quest)),
                 Component.literal("クリック: " + nextState).withStyle(ChatFormatting.GRAY)
+        ));
+        return stack;
+    }
+
+    public static ItemStack createEditItem(QuestDefinition quest) {
+        ItemStack stack = new ItemStack(Items.FEATHER);
+        stack.setHoverName(Component.literal("クエストを編集").withStyle(ChatFormatting.AQUA));
+        setLore(stack, List.of(
+                Component.literal("クエスト: " + quest.getTitle()).withStyle(ChatFormatting.GRAY),
+                Component.literal("ID: " + quest.getId()).withStyle(ChatFormatting.DARK_GRAY),
+                Component.empty(),
+                Component.literal("クリック: チャット入力で編集開始").withStyle(ChatFormatting.YELLOW),
+                Component.literal("/questadmin edit " + quest.getId()).withStyle(ChatFormatting.DARK_GRAY)
         ));
         return stack;
     }

@@ -5,7 +5,7 @@
 QuestAdmin は Minecraft Forge 1.20.1 向けのクエスト管理MODです。
 運営側がクエストを管理し、プレイヤーがクエストを達成すると Lightman's Currency の銀行口座へ報酬が支払われる構成です。
 
-現在は **Phase 8 完了扱い** です。
+現在は **Phase 9 完了扱い** です。
 
 ## 2. 開発環境
 
@@ -17,7 +17,7 @@ QuestAdmin は Minecraft Forge 1.20.1 向けのクエスト管理MODです。
 | 開発環境 | WSL Ubuntu + VS Code |
 | MOD名 | QuestAdmin |
 | mod id | questadmin |
-| 現在バージョン | 0.8.0 |
+| 現在バージョン | 0.9.0 |
 | 経済MOD | Lightman's Currency |
 | Lightman's Currency mod id | lightmanscurrency |
 | 使用jar | lightmanscurrency-1.20.1-2.3.0.4e.jar |
@@ -200,7 +200,25 @@ config/questadmin/player_quests.json
 - チャットの `cancel` と `/questadmin create cancel` による作成キャンセル
 - 作成完了時に `QuestDefinition` を追加して `quests.json` に保存
 - 作成後に管理者GUIへ戻る
-- MODバージョンを 0.8.0 に更新
+- MODバージョンをPhase 8向けに更新
+
+### Phase 9: MVP仕上げ
+
+完了扱い。
+
+実装済み内容:
+
+- `/questadmin edit <questId>` による既存クエスト編集
+- チャット入力ステップ方式による title / description / itemId / amount / reward money / repeatable / enabled の編集
+- `-` による現在値維持
+- 最終確認ステップ
+- チャットの `cancel` と `/questadmin edit cancel` による編集キャンセル
+- 編集中チャットの通常送信抑止
+- updatedAt の更新
+- 編集内容を `quests.json` に保存
+- 管理者GUI詳細画面から編集開始
+- README.md 作成
+- MODバージョンを 0.9.0 に更新
 
 ## 5. 現在の主要コマンド
 
@@ -218,6 +236,9 @@ config/questadmin/player_quests.json
 ```text
 /questadmin reload
 /questadmin list
+/questadmin edit <questId>
+/questadmin edit cancel
+/questadmin create cancel
 /questadmin progress <player>
 /questadmin progress mark <player> <questId> <status>
 /questadmin economy status
@@ -257,7 +278,7 @@ libs/lightmanscurrency-1.20.1-2.3.0.4e.jar
 サーバー側 mods 例:
 
 ```text
-~/servers/forge-1.20.1/mods/questadmin-0.8.0.jar
+~/servers/forge-1.20.1/mods/questadmin-0.9.0.jar
 ~/servers/forge-1.20.1/mods/lightmanscurrency-1.20.1-2.3.0.4e.jar
 ```
 
@@ -345,7 +366,7 @@ grep -R "0.1.0" -n . --exclude-dir=build --exclude-dir=.gradle --exclude-dir=.gi
 Forgeサーバーの `mods` フォルダに以下を入れます。
 
 ```text
-questadmin-0.8.0.jar
+questadmin-0.9.0.jar
 lightmanscurrency-1.20.1-2.3.0.4e.jar
 ```
 
@@ -358,7 +379,7 @@ lightmanscurrency-1.20.1-2.3.0.4e.jar
 /quest
 ```
 
-## 10. Phase 6後の手動確認手順
+## 10. MVP手動確認手順
 
 1. サーバー起動
 2. クライアント接続
@@ -375,6 +396,11 @@ lightmanscurrency-1.20.1-2.3.0.4e.jar
 13. 再度クリックして二重受け取りできないことを確認
 14. サーバー再起動
 15. CLAIMED 状態が維持されることを確認
+16. `/questadmin` で管理者GUIを開くことを確認
+17. 管理者GUIで enabled 切替が保存されることを確認
+18. 管理者GUIから新規クエスト作成を開始できることを確認
+19. `/questadmin edit <questId>` で既存クエストを編集できることを確認
+20. 編集後に `/questadmin list`、`/quest list`、`/quest` GUIへ反映されることを確認
 
 ## 11. 既知の注意点
 
@@ -412,17 +438,25 @@ Lightman's Currency はコイン単位を組み合わせて表示します。
 Lightman's Currency はサーバー・クライアント両方に入れる前提で扱ってください。
 QuestAdminもGUIを実装したため、マルチ環境ではクライアント側導入が必要になる可能性が高いです。
 
+### MVP時点の制限
+
+- 対応クエスト種別は `ITEM_DELIVERY` のみです。
+- 報酬は Lightman's Currency の銀行口座入金のみです。
+- 既存クエストの `id` と `type` は編集できません。
+- 既存 progress はクエスト削除・編集時にも変更しません。
+- Web管理画面、MySQL保存、複数経済MOD対応は未実装です。
+
 ## 12. 次のPhase候補
 
-次は **Phase 9：既存クエスト編集GUI** が候補です。
+次は **Phase 10：MVP検証・配布準備** が候補です。
 
 目的:
 
-- 既存クエストの編集画面を作る
-- enabled以外のフィールドを変更できるようにする
-- 変更内容を検証して `quests.json` に保存する
+- 実機でMVP一連の操作を確認する
+- エラーログとユーザー向け文言を整える
+- 配布jarと導入手順を固定する
 
-Phase 8時点では既存クエスト編集GUI、討伐・採掘・探索などの新種別は未実装です。
+Phase 9時点では討伐・採掘・探索などの新種別、複数経済MOD対応、Web管理画面は未実装です。
 
 ## 13. 次回作業前チェック
 
@@ -442,6 +476,7 @@ grep -R "fabric\|FabricLoader\|ModInitializer\|net.fabricmc" -n src build.gradle
 /questadmin reload
 /questadmin
 /questadmin create cancel
+/questadmin edit cancel
 /quest
 ```
 

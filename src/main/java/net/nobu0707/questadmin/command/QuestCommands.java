@@ -16,6 +16,7 @@ import net.nobu0707.questadmin.quest.PlayerQuestStorage;
 import net.nobu0707.questadmin.quest.QuestCreationSessionManager;
 import net.nobu0707.questadmin.quest.QuestCompletionService;
 import net.nobu0707.questadmin.quest.QuestDefinition;
+import net.nobu0707.questadmin.quest.QuestEditSessionManager;
 import net.nobu0707.questadmin.quest.QuestRequirement;
 import net.nobu0707.questadmin.quest.QuestRewardService;
 import net.nobu0707.questadmin.quest.QuestStatus;
@@ -44,6 +45,14 @@ public final class QuestCommands {
                 .then(Commands.literal("create")
                         .then(Commands.literal("cancel")
                                 .executes(context -> cancelQuestCreation(context.getSource()))))
+                .then(Commands.literal("edit")
+                        .then(Commands.literal("cancel")
+                                .executes(context -> cancelQuestEdit(context.getSource())))
+                        .then(Commands.argument("questId", StringArgumentType.word())
+                                .executes(context -> startQuestEdit(
+                                        context.getSource(),
+                                        StringArgumentType.getString(context, "questId")
+                                ))))
                 .then(Commands.literal("economy")
                         .then(Commands.literal("status")
                                 .executes(context -> showEconomyStatus(context.getSource()))))
@@ -148,6 +157,38 @@ public final class QuestCommands {
 
         ServerPlayer player = source.getPlayerOrException();
         QuestCreationSessionManager.ActionResult result = QuestCreationSessionManager.cancel(player);
+        if (!result.success()) {
+            source.sendFailure(Component.literal(result.message()));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(result.message()), false);
+        return 1;
+    }
+
+    private static int startQuestEdit(CommandSourceStack source, String questId) throws CommandSyntaxException {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
+        ServerPlayer player = source.getPlayerOrException();
+        QuestEditSessionManager.ActionResult result = QuestEditSessionManager.start(player, questId);
+        if (!result.success()) {
+            source.sendFailure(Component.literal(result.message()));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(result.message()), false);
+        return 1;
+    }
+
+    private static int cancelQuestEdit(CommandSourceStack source) throws CommandSyntaxException {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
+        ServerPlayer player = source.getPlayerOrException();
+        QuestEditSessionManager.ActionResult result = QuestEditSessionManager.cancel(player);
         if (!result.success()) {
             source.sendFailure(Component.literal(result.message()));
             return 0;

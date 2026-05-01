@@ -4,6 +4,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.nobu0707.questadmin.QuestAdminMod;
 import net.nobu0707.questadmin.quest.QuestCreationSessionManager;
 import net.nobu0707.questadmin.quest.QuestDefinition;
+import net.nobu0707.questadmin.quest.QuestEditSessionManager;
 import net.nobu0707.questadmin.quest.QuestStorage;
 
 import java.io.IOException;
@@ -86,6 +87,11 @@ public final class AdminQuestGuiService {
 
     public ActionResult startQuestCreation(ServerPlayer player) {
         QuestCreationSessionManager.ActionResult result = QuestCreationSessionManager.start(player);
+        return new ActionResult(result.success(), result.message());
+    }
+
+    public ActionResult startQuestEdit(ServerPlayer player, String questId) {
+        QuestEditSessionManager.ActionResult result = QuestEditSessionManager.start(player, questId);
         return new ActionResult(result.success(), result.message());
     }
 

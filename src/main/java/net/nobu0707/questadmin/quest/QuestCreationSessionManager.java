@@ -24,6 +24,14 @@ public final class QuestCreationSessionManager {
             return ActionResult.failure("QuestAdmin: この操作にはOP権限レベル2以上が必要です。");
         }
 
+        if (hasSession(player.getUUID())) {
+            return ActionResult.failure("QuestAdmin: 既にクエスト作成中です。cancel または /questadmin create cancel で終了してください。");
+        }
+
+        if (QuestEditSessionManager.hasSession(player.getUUID())) {
+            return ActionResult.failure("QuestAdmin: クエスト編集中です。cancel または /questadmin edit cancel で終了してください。");
+        }
+
         QuestCreationSession session = new QuestCreationSession();
         SESSIONS.put(player.getUUID(), session);
         player.closeContainer();
@@ -44,6 +52,10 @@ public final class QuestCreationSessionManager {
         }
 
         return ActionResult.success("QuestAdmin: クエスト作成をキャンセルしました。");
+    }
+
+    public static boolean hasSession(UUID playerUuid) {
+        return SESSIONS.containsKey(playerUuid);
     }
 
     public static void onServerChat(ServerChatEvent event) {
