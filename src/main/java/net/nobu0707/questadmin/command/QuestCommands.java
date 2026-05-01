@@ -9,6 +9,7 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.nobu0707.questadmin.QuestAdminMod;
+import net.nobu0707.questadmin.gui.AdminQuestMenuProvider;
 import net.nobu0707.questadmin.gui.QuestMenuProvider;
 import net.nobu0707.questadmin.quest.PlayerQuestState;
 import net.nobu0707.questadmin.quest.PlayerQuestStorage;
@@ -34,7 +35,7 @@ public final class QuestCommands {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
 
         dispatcher.register(Commands.literal("questadmin")
-                .requires(source -> source.hasPermission(2))
+                .executes(context -> openAdminQuestGui(context.getSource()))
                 .then(Commands.literal("reload")
                         .executes(context -> reloadQuests(context.getSource())))
                 .then(Commands.literal("list")
@@ -78,6 +79,10 @@ public final class QuestCommands {
     }
 
     private static int reloadQuests(CommandSourceStack source) {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
         QuestStorage.LoadResult result = QuestAdminMod.getQuestStorage().reloadQuests();
         if (!result.success()) {
             source.sendFailure(Component.literal("QuestAdmin: クエスト定義の再読み込みに失敗しました: " + result.errorMessage()));
@@ -92,6 +97,10 @@ public final class QuestCommands {
     }
 
     private static int listAdminQuests(CommandSourceStack source) {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
         List<QuestDefinition> quests = QuestAdminMod.getQuestStorage().getQuests();
         source.sendSuccess(() -> Component.literal("QuestAdmin クエスト一覧:"), false);
 
@@ -107,10 +116,24 @@ public final class QuestCommands {
     }
 
     private static int showEconomyStatus(CommandSourceStack source) {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
         List<String> statusLines = QuestAdminMod.getEconomyService().getStatusLines();
         for (String statusLine : statusLines) {
             source.sendSuccess(() -> Component.literal(statusLine), false);
         }
+        return 1;
+    }
+
+    private static int openAdminQuestGui(CommandSourceStack source) throws CommandSyntaxException {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
+        ServerPlayer player = source.getPlayerOrException();
+        AdminQuestMenuProvider.openQuestList(player);
         return 1;
     }
 
@@ -177,6 +200,10 @@ public final class QuestCommands {
     }
 
     private static int listPlayerProgress(CommandSourceStack source, ServerPlayer player) {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
         UUID playerUuid = player.getUUID();
         Map<String, PlayerQuestState> states = QuestAdminMod.getPlayerQuestStorage().getStates(playerUuid);
 
@@ -193,6 +220,10 @@ public final class QuestCommands {
     }
 
     private static int markPlayerProgress(CommandSourceStack source, ServerPlayer player, String questId, String statusName) {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
         QuestStatus status = parseStatus(statusName);
         if (status == null) {
             source.sendFailure(Component.literal("QuestAdmin: 不明なステータスです: " + statusName));
@@ -220,6 +251,15 @@ public final class QuestCommands {
                 true
         );
         return 1;
+    }
+
+    private static boolean hasAdminPermission(CommandSourceStack source) {
+        return source.hasPermission(2);
+    }
+
+    private static int sendNoAdminPermission(CommandSourceStack source) {
+        source.sendFailure(Component.literal("QuestAdmin: この操作にはOP権限レベル2以上が必要です。"));
+        return 0;
     }
 
     private static String formatAdminQuest(QuestDefinition quest) {
