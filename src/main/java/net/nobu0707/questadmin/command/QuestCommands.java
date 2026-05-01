@@ -13,6 +13,7 @@ import net.nobu0707.questadmin.gui.AdminQuestMenuProvider;
 import net.nobu0707.questadmin.gui.QuestMenuProvider;
 import net.nobu0707.questadmin.quest.PlayerQuestState;
 import net.nobu0707.questadmin.quest.PlayerQuestStorage;
+import net.nobu0707.questadmin.quest.QuestCreationSessionManager;
 import net.nobu0707.questadmin.quest.QuestCompletionService;
 import net.nobu0707.questadmin.quest.QuestDefinition;
 import net.nobu0707.questadmin.quest.QuestRequirement;
@@ -40,6 +41,9 @@ public final class QuestCommands {
                         .executes(context -> reloadQuests(context.getSource())))
                 .then(Commands.literal("list")
                         .executes(context -> listAdminQuests(context.getSource())))
+                .then(Commands.literal("create")
+                        .then(Commands.literal("cancel")
+                                .executes(context -> cancelQuestCreation(context.getSource()))))
                 .then(Commands.literal("economy")
                         .then(Commands.literal("status")
                                 .executes(context -> showEconomyStatus(context.getSource()))))
@@ -134,6 +138,22 @@ public final class QuestCommands {
 
         ServerPlayer player = source.getPlayerOrException();
         AdminQuestMenuProvider.openQuestList(player);
+        return 1;
+    }
+
+    private static int cancelQuestCreation(CommandSourceStack source) throws CommandSyntaxException {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
+        ServerPlayer player = source.getPlayerOrException();
+        QuestCreationSessionManager.ActionResult result = QuestCreationSessionManager.cancel(player);
+        if (!result.success()) {
+            source.sendFailure(Component.literal(result.message()));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(result.message()), false);
         return 1;
     }
 

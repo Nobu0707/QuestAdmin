@@ -86,8 +86,8 @@ public final class AdminQuestMenuItemFactory {
         ItemStack stack = new ItemStack(Items.WRITABLE_BOOK);
         stack.setHoverName(Component.literal("新規クエスト作成").withStyle(ChatFormatting.AQUA));
         setLore(stack, List.of(
-                Component.literal("Phase 8で実装予定です。").withStyle(ChatFormatting.GRAY),
-                Component.literal("クリック: 予定メッセージを表示").withStyle(ChatFormatting.YELLOW)
+                Component.literal("ITEM_DELIVERYクエストを作成します。").withStyle(ChatFormatting.GRAY),
+                Component.literal("クリック: チャット入力を開始").withStyle(ChatFormatting.YELLOW)
         ));
         return stack;
     }

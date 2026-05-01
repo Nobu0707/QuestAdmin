@@ -48,7 +48,7 @@ public final class AdminQuestMenu extends ChestMenu {
             }
 
             if (slotId == CREATE_SLOT && clickType == ClickType.PICKUP) {
-                sendResult(service.showCreateNotImplemented(player));
+                sendResult(service.startQuestCreation(player));
                 return;
             }
 

@@ -4,6 +4,7 @@ import net.nobu0707.questadmin.command.QuestCommands;
 import net.nobu0707.questadmin.economy.EconomyService;
 import net.nobu0707.questadmin.economy.LightmansCurrencyEconomyBridge;
 import net.nobu0707.questadmin.quest.PlayerQuestStorage;
+import net.nobu0707.questadmin.quest.QuestCreationSessionManager;
 import net.nobu0707.questadmin.quest.QuestStorage;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
@@ -22,6 +23,7 @@ public final class QuestAdminMod {
         initializePlayerQuestStorage();
         initializeEconomyService();
         MinecraftForge.EVENT_BUS.addListener(QuestCommands::register);
+        MinecraftForge.EVENT_BUS.addListener(QuestCreationSessionManager::onServerChat);
     }
 
     public static synchronized QuestStorage initializeStorage() {

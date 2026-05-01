@@ -2,6 +2,7 @@ package net.nobu0707.questadmin.gui;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.nobu0707.questadmin.QuestAdminMod;
+import net.nobu0707.questadmin.quest.QuestCreationSessionManager;
 import net.nobu0707.questadmin.quest.QuestDefinition;
 import net.nobu0707.questadmin.quest.QuestStorage;
 
@@ -83,11 +84,9 @@ public final class AdminQuestGuiService {
         return ActionResult.success("QuestAdmin: クエスト「" + deletedQuest.getTitle() + "」を削除しました。");
     }
 
-    public ActionResult showCreateNotImplemented(ServerPlayer player) {
-        if (!hasAdminPermission(player)) {
-            return ActionResult.failure("QuestAdmin: この操作にはOP権限レベル2以上が必要です。");
-        }
-        return ActionResult.success("QuestAdmin: クエスト作成GUIは Phase 8 で実装予定です。");
+    public ActionResult startQuestCreation(ServerPlayer player) {
+        QuestCreationSessionManager.ActionResult result = QuestCreationSessionManager.start(player);
+        return new ActionResult(result.success(), result.message());
     }
 
     public boolean hasAdminPermission(ServerPlayer player) {
