@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public final class QuestStorage {
@@ -21,6 +22,7 @@ public final class QuestStorage {
 
     private final Path questsPath;
     private List<QuestDefinition> quests = List.of();
+    private Map<String, QuestDefinition> questById = Map.of();
 
     public QuestStorage(Path questsPath) {
         this.questsPath = questsPath;
@@ -47,6 +49,14 @@ public final class QuestStorage {
         return Collections.unmodifiableList(quests);
     }
 
+    public Optional<QuestDefinition> findById(String questId) {
+        return Optional.ofNullable(questById.get(questId));
+    }
+
+    public boolean exists(String questId) {
+        return questById.containsKey(questId);
+    }
+
     public Path getQuestsPath() {
         return questsPath;
     }
@@ -61,6 +71,7 @@ public final class QuestStorage {
             String json = Files.readString(questsPath, StandardCharsets.UTF_8);
             DecodedQuestList decodedQuestList = decodeQuestList(json);
             quests = decodedQuestList.quests();
+            rebuildIndex();
             return LoadResult.success(decodedQuestList.quests(), decodedQuestList.skippedCount());
         } catch (IOException | RuntimeException exception) {
             LOGGER.error("Failed to load quests from {}.", questsPath, exception);
@@ -76,6 +87,7 @@ public final class QuestStorage {
 
         StorageFileUtil.writeStringSafely(questsPath, encodeQuestList(questsToSave), LOGGER);
         quests = List.copyOf(questsToSave);
+        rebuildIndex();
     }
 
     private void createSampleQuestFile() {
@@ -85,7 +97,16 @@ public final class QuestStorage {
         } catch (IOException exception) {
             LOGGER.error("Failed to create sample quest file at {}.", questsPath, exception);
             quests = List.of(sampleQuest);
+            rebuildIndex();
         }
+    }
+
+    private void rebuildIndex() {
+        Map<String, QuestDefinition> rebuiltIndex = new LinkedHashMap<>();
+        for (QuestDefinition quest : quests) {
+            rebuiltIndex.put(quest.getId(), quest);
+        }
+        questById = Map.copyOf(rebuiltIndex);
     }
 
     public record LoadResult(boolean success, List<QuestDefinition> quests, String errorMessage, int skippedCount) {

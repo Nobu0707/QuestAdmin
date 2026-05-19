@@ -22,17 +22,23 @@ public final class QuestDetailMenu extends ChestMenu {
 
     private final ServerPlayer player;
     private final String questId;
+    private final int returnPage;
     private final SimpleContainer questContainer;
     private final QuestGuiService service = new QuestGuiService();
 
     public QuestDetailMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId) {
-        this(containerId, playerInventory, player, questId, new SimpleContainer(MENU_SIZE));
+        this(containerId, playerInventory, player, questId, 0);
     }
 
-    private QuestDetailMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId, SimpleContainer questContainer) {
+    public QuestDetailMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId, int returnPage) {
+        this(containerId, playerInventory, player, questId, returnPage, new SimpleContainer(MENU_SIZE));
+    }
+
+    private QuestDetailMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId, int returnPage, SimpleContainer questContainer) {
         super(MenuType.GENERIC_9x3, containerId, playerInventory, questContainer, ROWS);
         this.player = player;
         this.questId = questId;
+        this.returnPage = Math.max(0, returnPage);
         this.questContainer = questContainer;
         refreshDetailSlots();
     }
@@ -41,7 +47,7 @@ public final class QuestDetailMenu extends ChestMenu {
     public void clicked(int slotId, int button, ClickType clickType, Player clickingPlayer) {
         if (slotId >= 0 && slotId < MENU_SIZE) {
             if (slotId == BACK_SLOT && clickType == ClickType.PICKUP) {
-                QuestMenuProvider.openQuestList(player);
+                QuestMenuProvider.openQuestList(player, returnPage);
                 return;
             }
 
@@ -85,10 +91,7 @@ public final class QuestDetailMenu extends ChestMenu {
             questContainer.setItem(slot, filler.copy());
         }
 
-        QuestDefinition quest = service.getVisibleQuests().stream()
-                .filter(value -> value.getId().equals(questId))
-                .findFirst()
-                .orElse(null);
+        QuestDefinition quest = service.findVisibleQuest(questId).orElse(null);
         if (quest == null) {
             questContainer.setItem(DETAIL_SLOT, QuestMenuItemFactory.createMissingQuestItem(questId));
             questContainer.setItem(BACK_SLOT, QuestMenuItemFactory.createBackItem());
@@ -96,7 +99,8 @@ public final class QuestDetailMenu extends ChestMenu {
         }
 
         QuestStatus status = service.getStatus(player, quest);
-        questContainer.setItem(DETAIL_SLOT, QuestMenuItemFactory.createDetailItem(player, quest, status));
+        InventoryItemCountSnapshot itemCounts = InventoryItemCountSnapshot.capture(player);
+        questContainer.setItem(DETAIL_SLOT, QuestMenuItemFactory.createDetailItem(quest, status, itemCounts));
         questContainer.setItem(ACTION_SLOT, QuestMenuItemFactory.createActionItem(quest, status));
         questContainer.setItem(BACK_SLOT, QuestMenuItemFactory.createBackItem());
     }

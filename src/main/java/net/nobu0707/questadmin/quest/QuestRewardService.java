@@ -148,10 +148,7 @@ public final class QuestRewardService {
     }
 
     private QuestDefinition findQuestById(String questId) {
-        return questStorage.getQuests().stream()
-                .filter(quest -> quest.getId().equals(questId))
-                .findFirst()
-                .orElse(null);
+        return questStorage.findById(questId).orElse(null);
     }
 
     public record ClaimResult(boolean success, String message, String secondaryMessage) {

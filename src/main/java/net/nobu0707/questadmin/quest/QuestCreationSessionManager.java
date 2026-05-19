@@ -96,7 +96,7 @@ public final class QuestCreationSessionManager {
 
     private static void saveQuest(ServerPlayer player, QuestDefinition quest) {
         QuestStorage storage = QuestAdminMod.getQuestStorage();
-        if (storage.getQuests().stream().anyMatch(existingQuest -> existingQuest.getId().equals(quest.getId()))) {
+        if (storage.exists(quest.getId())) {
             SESSIONS.remove(player.getUUID());
             player.sendSystemMessage(Component.literal("QuestAdmin: 既に同じquestIdのクエストが存在します: " + quest.getId()).withStyle(ChatFormatting.RED));
             return;

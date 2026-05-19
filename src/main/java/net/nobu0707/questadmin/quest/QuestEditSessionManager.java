@@ -32,10 +32,7 @@ public final class QuestEditSessionManager {
             return ActionResult.failure("QuestAdmin: クエスト作成中です。cancel または /questadmin create cancel で終了してください。");
         }
 
-        QuestDefinition quest = QuestAdminMod.getQuestStorage().getQuests().stream()
-                .filter(value -> value.getId().equals(questId))
-                .findFirst()
-                .orElse(null);
+        QuestDefinition quest = QuestAdminMod.getQuestStorage().findById(questId).orElse(null);
         if (quest == null) {
             return ActionResult.failure("QuestAdmin: クエストが見つかりません: " + questId);
         }

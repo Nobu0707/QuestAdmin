@@ -9,6 +9,7 @@ import net.nobu0707.questadmin.quest.QuestRewardService;
 import net.nobu0707.questadmin.quest.QuestStatus;
 
 import java.util.List;
+import java.util.Optional;
 
 public final class QuestGuiService {
     public List<QuestDefinition> getVisibleQuests() {
@@ -23,8 +24,13 @@ public final class QuestGuiService {
                 .orElse(QuestStatus.NOT_STARTED);
     }
 
+    public Optional<QuestDefinition> findVisibleQuest(String questId) {
+        return QuestAdminMod.getQuestStorage().findById(questId)
+                .filter(QuestDefinition::isEnabled);
+    }
+
     public ActionResult activateQuest(ServerPlayer player, String questId) {
-        QuestDefinition quest = findEnabledQuest(questId);
+        QuestDefinition quest = findVisibleQuest(questId).orElse(null);
         if (quest == null) {
             return ActionResult.failure("QuestAdmin: 存在しない、または無効なクエストです: " + questId);
         }
@@ -52,14 +58,6 @@ public final class QuestGuiService {
                 "QuestAdmin: クエスト「" + result.quest().getTitle() + "」を完了しました。",
                 "QuestAdmin: 報酬は /quest claim " + result.quest().getId() + " で受け取れます。"
         );
-    }
-
-    private QuestDefinition findEnabledQuest(String questId) {
-        return QuestAdminMod.getQuestStorage().getQuests().stream()
-                .filter(QuestDefinition::isEnabled)
-                .filter(quest -> quest.getId().equals(questId))
-                .findFirst()
-                .orElse(null);
     }
 
     private QuestCompletionService createCompletionService() {

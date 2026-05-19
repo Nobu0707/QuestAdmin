@@ -1,5 +1,28 @@
 # Release Notes
 
+## QuestAdmin 1.0.3
+
+### 概要
+
+v1.0.0 MVP の安定化版です。
+Phase 11.4 として、50人以上の同時接続やクエスト数増加に備え、GUI表示とquestId検索を軽量化しました。
+
+### 変更内容
+
+- `/quest` のプレイヤー用GUIに45件ごとのページングを追加
+- `/questadmin` の管理者用GUIに45件ごとのページングを追加
+- プレイヤーGUI表示時の所持数計算をインベントリ1回集計のSnapshot参照へ変更
+- `QuestStorage` にquestId検索インデックス、`findById`、`exists` を追加
+- 主要なquestId線形検索を `QuestStorage.findById` へ置換
+- ページング後のGUIクリック時もquestIdからサーバー側で再検証する流れを維持
+
+### 配布物
+
+- `build/libs/questadmin-1.0.3.jar`
+
+QuestAdmin jar に Lightman's Currency 本体は同梱していません。
+Lightman's Currency はサーバーとクライアント双方の `mods` フォルダへ別途配置してください。
+
 ## QuestAdmin 1.0.2
 
 ### 概要

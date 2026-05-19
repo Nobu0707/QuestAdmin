@@ -20,33 +20,73 @@ import java.util.Map;
 public final class QuestMenu extends ChestMenu {
     private static final int ROWS = 6;
     private static final int MENU_SIZE = ROWS * 9;
+    private static final int QUEST_SLOT_LIMIT = 45;
+    private static final int PREVIOUS_PAGE_SLOT = 45;
+    private static final int REFRESH_SLOT = 48;
+    private static final int PAGE_INFO_SLOT = 49;
+    private static final int CLOSE_SLOT = 50;
+    private static final int NEXT_PAGE_SLOT = 53;
 
     private final ServerPlayer player;
     private final SimpleContainer questContainer;
     private final QuestGuiService service = new QuestGuiService();
     private final Map<Integer, String> slotQuestIds = new HashMap<>();
+    private int currentPage;
 
     public QuestMenu(int containerId, Inventory playerInventory, ServerPlayer player) {
-        this(containerId, playerInventory, player, new SimpleContainer(MENU_SIZE));
+        this(containerId, playerInventory, player, 0);
     }
 
-    private QuestMenu(int containerId, Inventory playerInventory, ServerPlayer player, SimpleContainer questContainer) {
+    public QuestMenu(int containerId, Inventory playerInventory, ServerPlayer player, int page) {
+        this(containerId, playerInventory, player, page, new SimpleContainer(MENU_SIZE));
+    }
+
+    private QuestMenu(int containerId, Inventory playerInventory, ServerPlayer player, int page, SimpleContainer questContainer) {
         super(MenuType.GENERIC_9x6, containerId, playerInventory, questContainer, ROWS);
         this.player = player;
         this.questContainer = questContainer;
+        this.currentPage = Math.max(0, page);
         refreshQuestSlots();
     }
 
     @Override
     public void clicked(int slotId, int button, ClickType clickType, Player clickingPlayer) {
         if (slotId >= 0 && slotId < MENU_SIZE) {
+            if (clickType == ClickType.PICKUP && slotId == PREVIOUS_PAGE_SLOT) {
+                changePage(currentPage - 1);
+                return;
+            }
+
+            if (clickType == ClickType.PICKUP && slotId == NEXT_PAGE_SLOT) {
+                changePage(currentPage + 1);
+                return;
+            }
+
+            if (clickType == ClickType.PICKUP && slotId == REFRESH_SLOT) {
+                refreshQuestSlots();
+                broadcastChanges();
+                return;
+            }
+
+            if (clickType == ClickType.PICKUP && slotId == CLOSE_SLOT) {
+                player.closeContainer();
+                return;
+            }
+
             String questId = slotQuestIds.get(slotId);
             if (questId == null) {
                 return;
             }
 
             if (clickType == ClickType.PICKUP && button == 1) {
-                QuestMenuProvider.openQuestDetail(player, questId);
+                if (service.findVisibleQuest(questId).isEmpty()) {
+                    player.sendSystemMessage(Component.literal("QuestAdmin: 存在しない、または無効なクエストです: " + questId).withStyle(ChatFormatting.RED));
+                    refreshQuestSlots();
+                    broadcastChanges();
+                    return;
+                }
+
+                QuestMenuProvider.openQuestDetail(player, questId, currentPage);
                 return;
             }
 
@@ -83,26 +123,53 @@ public final class QuestMenu extends ChestMenu {
         }
     }
 
+    private void changePage(int targetPage) {
+        List<QuestDefinition> quests = service.getVisibleQuests();
+        currentPage = QuestPagination.clampPage(targetPage, quests.size(), QUEST_SLOT_LIMIT);
+        refreshQuestSlots(quests);
+        broadcastChanges();
+    }
+
     private void refreshQuestSlots() {
+        refreshQuestSlots(service.getVisibleQuests());
+    }
+
+    private void refreshQuestSlots(List<QuestDefinition> quests) {
         slotQuestIds.clear();
         questContainer.clearContent();
 
-        List<QuestDefinition> quests = service.getVisibleQuests();
+        currentPage = QuestPagination.clampPage(currentPage, quests.size(), QUEST_SLOT_LIMIT);
+        fillFooter(quests.size());
+
         if (quests.isEmpty()) {
             questContainer.setItem(22, QuestMenuItemFactory.createEmptyListItem());
             return;
         }
 
+        InventoryItemCountSnapshot itemCounts = InventoryItemCountSnapshot.capture(player);
+        int fromIndex = QuestPagination.fromIndex(currentPage, quests.size(), QUEST_SLOT_LIMIT);
+        int toIndex = QuestPagination.toIndex(currentPage, quests.size(), QUEST_SLOT_LIMIT);
         int slot = 0;
-        for (QuestDefinition quest : quests) {
-            if (slot >= MENU_SIZE) {
-                break;
-            }
-
+        for (int index = fromIndex; index < toIndex; index++) {
+            QuestDefinition quest = quests.get(index);
             QuestStatus status = service.getStatus(player, quest);
-            questContainer.setItem(slot, QuestMenuItemFactory.createListItem(player, quest, status));
+            questContainer.setItem(slot, QuestMenuItemFactory.createListItem(quest, status, itemCounts));
             slotQuestIds.put(slot, quest.getId());
             slot++;
         }
+    }
+
+    private void fillFooter(int totalQuests) {
+        ItemStack filler = QuestMenuItemFactory.createFillerItem();
+        for (int footerSlot = QUEST_SLOT_LIMIT; footerSlot < MENU_SIZE; footerSlot++) {
+            questContainer.setItem(footerSlot, filler.copy());
+        }
+
+        int pageCount = QuestPagination.pageCount(totalQuests, QUEST_SLOT_LIMIT);
+        questContainer.setItem(PREVIOUS_PAGE_SLOT, QuestMenuItemFactory.createPreviousPageItem(currentPage > 0, currentPage, pageCount));
+        questContainer.setItem(REFRESH_SLOT, QuestMenuItemFactory.createRefreshItem());
+        questContainer.setItem(PAGE_INFO_SLOT, QuestMenuItemFactory.createPageInfoItem(currentPage, pageCount, totalQuests));
+        questContainer.setItem(CLOSE_SLOT, QuestMenuItemFactory.createCloseItem());
+        questContainer.setItem(NEXT_PAGE_SLOT, QuestMenuItemFactory.createNextPageItem(currentPage + 1 < pageCount, currentPage, pageCount));
     }
 }

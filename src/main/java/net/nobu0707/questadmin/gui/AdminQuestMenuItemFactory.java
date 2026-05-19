@@ -140,6 +140,47 @@ public final class AdminQuestMenuItemFactory {
         return stack;
     }
 
+    public static ItemStack createPreviousPageItem(boolean enabled, int currentPage, int pageCount) {
+        ItemStack stack = new ItemStack(enabled ? Items.ARROW : Items.GRAY_STAINED_GLASS_PANE);
+        stack.setHoverName(Component.literal("前のページ").withStyle(enabled ? ChatFormatting.YELLOW : ChatFormatting.DARK_GRAY));
+        setLore(stack, List.of(
+                Component.literal("ページ " + (currentPage + 1) + " / " + pageCount).withStyle(ChatFormatting.GRAY),
+                Component.literal(enabled ? "クリック: 前へ" : "これより前のページはありません").withStyle(ChatFormatting.GRAY)
+        ));
+        return stack;
+    }
+
+    public static ItemStack createNextPageItem(boolean enabled, int currentPage, int pageCount) {
+        ItemStack stack = new ItemStack(enabled ? Items.ARROW : Items.GRAY_STAINED_GLASS_PANE);
+        stack.setHoverName(Component.literal("次のページ").withStyle(enabled ? ChatFormatting.YELLOW : ChatFormatting.DARK_GRAY));
+        setLore(stack, List.of(
+                Component.literal("ページ " + (currentPage + 1) + " / " + pageCount).withStyle(ChatFormatting.GRAY),
+                Component.literal(enabled ? "クリック: 次へ" : "これより後のページはありません").withStyle(ChatFormatting.GRAY)
+        ));
+        return stack;
+    }
+
+    public static ItemStack createRefreshItem() {
+        ItemStack stack = new ItemStack(Items.CLOCK);
+        stack.setHoverName(Component.literal("更新").withStyle(ChatFormatting.AQUA));
+        setLore(stack, List.of(Component.literal("クリック: 現在のページを再読み込み").withStyle(ChatFormatting.GRAY)));
+        return stack;
+    }
+
+    public static ItemStack createPageInfoItem(int currentPage, int pageCount, int totalQuests) {
+        ItemStack stack = new ItemStack(Items.MAP);
+        stack.setHoverName(Component.literal("ページ " + (currentPage + 1) + " / " + pageCount).withStyle(ChatFormatting.GOLD));
+        setLore(stack, List.of(Component.literal("登録済み: " + totalQuests + " 件").withStyle(ChatFormatting.GRAY)));
+        return stack;
+    }
+
+    public static ItemStack createCloseItem() {
+        ItemStack stack = new ItemStack(Items.BARRIER);
+        stack.setHoverName(Component.literal("閉じる").withStyle(ChatFormatting.RED));
+        setLore(stack, List.of(Component.literal("クリック: GUIを閉じる").withStyle(ChatFormatting.GRAY)));
+        return stack;
+    }
+
     private static List<Component> createAdminQuestLore(QuestDefinition quest) {
         QuestRequirement requirement = quest.getRequirement();
         List<Component> lore = new ArrayList<>();

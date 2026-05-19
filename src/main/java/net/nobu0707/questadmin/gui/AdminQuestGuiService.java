@@ -18,9 +18,7 @@ public final class AdminQuestGuiService {
     }
 
     public Optional<QuestDefinition> findQuest(String questId) {
-        return getAllQuests().stream()
-                .filter(quest -> quest.getId().equals(questId))
-                .findFirst();
+        return QuestAdminMod.getQuestStorage().findById(questId);
     }
 
     public ActionResult toggleEnabled(ServerPlayer player, String questId) {
@@ -115,11 +113,11 @@ public final class AdminQuestGuiService {
     }
 
     public record ActionResult(boolean success, String message) {
-        private static ActionResult success(String message) {
+        public static ActionResult success(String message) {
             return new ActionResult(true, message);
         }
 
-        private static ActionResult failure(String message) {
+        public static ActionResult failure(String message) {
             return new ActionResult(false, message);
         }
     }

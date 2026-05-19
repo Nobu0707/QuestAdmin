@@ -23,17 +23,23 @@ public final class AdminQuestDetailMenu extends ChestMenu {
 
     private final ServerPlayer player;
     private final String questId;
+    private final int returnPage;
     private final SimpleContainer questContainer;
     private final AdminQuestGuiService service = new AdminQuestGuiService();
 
     public AdminQuestDetailMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId) {
-        this(containerId, playerInventory, player, questId, new SimpleContainer(MENU_SIZE));
+        this(containerId, playerInventory, player, questId, 0);
     }
 
-    private AdminQuestDetailMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId, SimpleContainer questContainer) {
+    public AdminQuestDetailMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId, int returnPage) {
+        this(containerId, playerInventory, player, questId, returnPage, new SimpleContainer(MENU_SIZE));
+    }
+
+    private AdminQuestDetailMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId, int returnPage, SimpleContainer questContainer) {
         super(MenuType.GENERIC_9x3, containerId, playerInventory, questContainer, ROWS);
         this.player = player;
         this.questId = questId;
+        this.returnPage = Math.max(0, returnPage);
         this.questContainer = questContainer;
         refreshDetailSlots();
     }
@@ -48,7 +54,7 @@ public final class AdminQuestDetailMenu extends ChestMenu {
             }
 
             if (slotId == BACK_SLOT && clickType == ClickType.PICKUP) {
-                AdminQuestMenuProvider.openQuestList(player);
+                AdminQuestMenuProvider.openQuestList(player, returnPage);
                 return;
             }
 
@@ -65,7 +71,7 @@ public final class AdminQuestDetailMenu extends ChestMenu {
             }
 
             if (slotId == DELETE_SLOT && clickType == ClickType.PICKUP) {
-                AdminQuestMenuProvider.openDeleteConfirm(player, questId);
+                AdminQuestMenuProvider.openDeleteConfirm(player, questId, returnPage);
             }
             return;
         }

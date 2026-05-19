@@ -6,7 +6,6 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -22,11 +21,11 @@ public final class QuestMenuItemFactory {
     private QuestMenuItemFactory() {
     }
 
-    public static ItemStack createListItem(ServerPlayer player, QuestDefinition quest, QuestStatus status) {
+    public static ItemStack createListItem(QuestDefinition quest, QuestStatus status, InventoryItemCountSnapshot itemCounts) {
         ItemStack stack = new ItemStack(getListIcon(quest, status));
         stack.setHoverName(Component.literal(quest.getTitle()).withStyle(getStatusColor(status)));
 
-        List<Component> lore = createQuestLore(player, quest, status);
+        List<Component> lore = createQuestLore(quest, status, itemCounts);
         lore.add(Component.empty());
         lore.add(Component.literal(getPrimaryActionText(status)).withStyle(ChatFormatting.YELLOW));
         lore.add(Component.literal("右クリック: 詳細を開く").withStyle(ChatFormatting.GRAY));
@@ -34,11 +33,11 @@ public final class QuestMenuItemFactory {
         return stack;
     }
 
-    public static ItemStack createDetailItem(ServerPlayer player, QuestDefinition quest, QuestStatus status) {
+    public static ItemStack createDetailItem(QuestDefinition quest, QuestStatus status, InventoryItemCountSnapshot itemCounts) {
         ItemStack stack = new ItemStack(resolveItem(quest.getRequirement().getItemId()).orElse(Items.BOOK));
         stack.setHoverName(Component.literal(quest.getTitle()).withStyle(ChatFormatting.AQUA));
 
-        List<Component> lore = createQuestLore(player, quest, status);
+        List<Component> lore = createQuestLore(quest, status, itemCounts);
         lore.add(Component.empty());
         lore.add(Component.literal("中央のボタンで操作できます。").withStyle(ChatFormatting.GRAY));
         setLore(stack, lore);
@@ -91,7 +90,48 @@ public final class QuestMenuItemFactory {
         return stack;
     }
 
-    private static List<Component> createQuestLore(ServerPlayer player, QuestDefinition quest, QuestStatus status) {
+    public static ItemStack createPreviousPageItem(boolean enabled, int currentPage, int pageCount) {
+        ItemStack stack = new ItemStack(enabled ? Items.ARROW : Items.GRAY_STAINED_GLASS_PANE);
+        stack.setHoverName(Component.literal("前のページ").withStyle(enabled ? ChatFormatting.YELLOW : ChatFormatting.DARK_GRAY));
+        setLore(stack, List.of(
+                Component.literal("ページ " + (currentPage + 1) + " / " + pageCount).withStyle(ChatFormatting.GRAY),
+                Component.literal(enabled ? "クリック: 前へ" : "これより前のページはありません").withStyle(ChatFormatting.GRAY)
+        ));
+        return stack;
+    }
+
+    public static ItemStack createNextPageItem(boolean enabled, int currentPage, int pageCount) {
+        ItemStack stack = new ItemStack(enabled ? Items.ARROW : Items.GRAY_STAINED_GLASS_PANE);
+        stack.setHoverName(Component.literal("次のページ").withStyle(enabled ? ChatFormatting.YELLOW : ChatFormatting.DARK_GRAY));
+        setLore(stack, List.of(
+                Component.literal("ページ " + (currentPage + 1) + " / " + pageCount).withStyle(ChatFormatting.GRAY),
+                Component.literal(enabled ? "クリック: 次へ" : "これより後のページはありません").withStyle(ChatFormatting.GRAY)
+        ));
+        return stack;
+    }
+
+    public static ItemStack createRefreshItem() {
+        ItemStack stack = new ItemStack(Items.CLOCK);
+        stack.setHoverName(Component.literal("更新").withStyle(ChatFormatting.AQUA));
+        setLore(stack, List.of(Component.literal("クリック: 現在のページを再読み込み").withStyle(ChatFormatting.GRAY)));
+        return stack;
+    }
+
+    public static ItemStack createPageInfoItem(int currentPage, int pageCount, int totalQuests) {
+        ItemStack stack = new ItemStack(Items.MAP);
+        stack.setHoverName(Component.literal("ページ " + (currentPage + 1) + " / " + pageCount).withStyle(ChatFormatting.GOLD));
+        setLore(stack, List.of(Component.literal("表示対象: " + totalQuests + " 件").withStyle(ChatFormatting.GRAY)));
+        return stack;
+    }
+
+    public static ItemStack createCloseItem() {
+        ItemStack stack = new ItemStack(Items.BARRIER);
+        stack.setHoverName(Component.literal("閉じる").withStyle(ChatFormatting.RED));
+        setLore(stack, List.of(Component.literal("クリック: GUIを閉じる").withStyle(ChatFormatting.GRAY)));
+        return stack;
+    }
+
+    private static List<Component> createQuestLore(QuestDefinition quest, QuestStatus status, InventoryItemCountSnapshot itemCounts) {
         QuestRequirement requirement = quest.getRequirement();
         List<Component> lore = new ArrayList<>();
         lore.add(Component.literal(quest.getDescription()).withStyle(ChatFormatting.GRAY));
@@ -101,7 +141,7 @@ public final class QuestMenuItemFactory {
             lore.add(Component.literal("管理者確認が必要です。再受け取りはできません。").withStyle(ChatFormatting.RED));
         }
         lore.add(Component.literal("必要: " + requirement.getItemId() + " x" + requirement.getAmount()).withStyle(ChatFormatting.GRAY));
-        lore.add(Component.literal("所持: " + countRequirement(player, quest) + " / " + requirement.getAmount()).withStyle(ChatFormatting.GRAY));
+        lore.add(Component.literal("所持: " + countRequirement(itemCounts, quest) + " / " + requirement.getAmount()).withStyle(ChatFormatting.GRAY));
         lore.add(Component.literal("報酬: " + quest.getReward().getMoney()).withStyle(ChatFormatting.GOLD));
         lore.add(Component.literal("ID: " + quest.getId()).withStyle(ChatFormatting.DARK_GRAY));
         return lore;
@@ -116,12 +156,9 @@ public final class QuestMenuItemFactory {
         };
     }
 
-    private static int countRequirement(ServerPlayer player, QuestDefinition quest) {
+    private static int countRequirement(InventoryItemCountSnapshot itemCounts, QuestDefinition quest) {
         Optional<Item> item = resolveItem(quest.getRequirement().getItemId());
-        return item.map(value -> new net.nobu0707.questadmin.quest.QuestCompletionService(
-                net.nobu0707.questadmin.QuestAdminMod.getQuestStorage(),
-                net.nobu0707.questadmin.QuestAdminMod.getPlayerQuestStorage()
-        ).countItem(player, value)).orElse(0);
+        return item.map(itemCounts::count).orElse(0);
     }
 
     private static Optional<Item> resolveItem(String itemId) {

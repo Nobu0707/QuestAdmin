@@ -72,9 +72,7 @@ public final class QuestCompletionService {
     }
 
     public Optional<QuestDefinition> findQuestById(String questId) {
-        return questStorage.getQuests().stream()
-                .filter(quest -> quest.getId().equals(questId))
-                .findFirst();
+        return questStorage.findById(questId);
     }
 
     public int countItem(ServerPlayer player, Item item) {

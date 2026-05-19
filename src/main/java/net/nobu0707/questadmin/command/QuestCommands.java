@@ -340,10 +340,7 @@ public final class QuestCommands {
     }
 
     private static QuestDefinition findQuest(String questId) {
-        return QuestAdminMod.getQuestStorage().getQuests().stream()
-                .filter(quest -> quest.getId().equals(questId))
-                .findFirst()
-                .orElse(null);
+        return QuestAdminMod.getQuestStorage().findById(questId).orElse(null);
     }
 
     private static String getQuestStatusLabel(ServerPlayer player, QuestDefinition quest) {

@@ -21,17 +21,23 @@ public final class QuestDeleteConfirmMenu extends ChestMenu {
 
     private final ServerPlayer player;
     private final String questId;
+    private final int returnPage;
     private final SimpleContainer questContainer;
     private final AdminQuestGuiService service = new AdminQuestGuiService();
 
     public QuestDeleteConfirmMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId) {
-        this(containerId, playerInventory, player, questId, new SimpleContainer(MENU_SIZE));
+        this(containerId, playerInventory, player, questId, 0);
     }
 
-    private QuestDeleteConfirmMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId, SimpleContainer questContainer) {
+    public QuestDeleteConfirmMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId, int returnPage) {
+        this(containerId, playerInventory, player, questId, returnPage, new SimpleContainer(MENU_SIZE));
+    }
+
+    private QuestDeleteConfirmMenu(int containerId, Inventory playerInventory, ServerPlayer player, String questId, int returnPage, SimpleContainer questContainer) {
         super(MenuType.GENERIC_9x3, containerId, playerInventory, questContainer, ROWS);
         this.player = player;
         this.questId = questId;
+        this.returnPage = Math.max(0, returnPage);
         this.questContainer = questContainer;
         refreshConfirmSlots();
     }
@@ -50,13 +56,13 @@ public final class QuestDeleteConfirmMenu extends ChestMenu {
             }
 
             if (slotId == CANCEL_SLOT) {
-                AdminQuestMenuProvider.openQuestList(player);
+                AdminQuestMenuProvider.openQuestList(player, returnPage);
                 return;
             }
 
             if (slotId == DELETE_SLOT) {
                 sendResult(service.deleteQuest(player, questId));
-                AdminQuestMenuProvider.openQuestList(player);
+                AdminQuestMenuProvider.openQuestList(player, returnPage);
             }
             return;
         }
