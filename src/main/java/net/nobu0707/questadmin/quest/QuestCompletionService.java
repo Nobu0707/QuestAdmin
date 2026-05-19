@@ -36,6 +36,11 @@ public final class QuestCompletionService {
             return CompletionResult.failure("QuestAdmin: このクエスト種別はまだ完了処理に対応していません。");
         }
 
+        Optional<PlayerQuestState> currentState = playerQuestStorage.getState(player.getUUID(), quest.getId());
+        if (currentState.isPresent() && currentState.get().getStatus() == QuestStatus.CLAIMING) {
+            return CompletionResult.failure("QuestAdmin: 報酬受け取り処理中、または支払い結果の確認が必要です。管理者へ連絡してください。");
+        }
+
         if (!quest.isRepeatable() && playerQuestStorage.hasCompleted(player.getUUID(), quest.getId())) {
             return CompletionResult.failure("QuestAdmin: このクエストは既に完了済みです。");
         }

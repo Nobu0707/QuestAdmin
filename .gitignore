@@ -1,0 +1,7 @@
+
+# Generated build/cache artifacts
+.gradle/
+build/
+out/
+*.class
+*.jar

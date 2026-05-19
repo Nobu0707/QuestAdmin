@@ -1,5 +1,8 @@
 package net.nobu0707.questadmin.quest;
 
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -15,6 +18,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public final class PlayerQuestStorage {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private final Path playerQuestsPath;
     private Map<UUID, Map<String, PlayerQuestState>> states = new LinkedHashMap<>();
 
@@ -37,7 +42,7 @@ public final class PlayerQuestStorage {
             states = decodePlayerQuestStates(json);
             return LoadResult.success(states);
         } catch (IOException | RuntimeException exception) {
-            System.err.println("[QuestAdmin] Failed to load player quest states from " + playerQuestsPath + ": " + exception.getMessage());
+            LOGGER.error("Failed to load player quest states from {}.", playerQuestsPath, exception);
             return LoadResult.failure(states, exception.getMessage());
         }
     }
@@ -76,7 +81,9 @@ public final class PlayerQuestStorage {
 
     public boolean hasCompleted(UUID playerUuid, String questId) {
         return getState(playerUuid, questId)
-                .map(state -> state.getStatus() == QuestStatus.COMPLETED || state.getStatus() == QuestStatus.CLAIMED)
+                .map(state -> state.getStatus() == QuestStatus.COMPLETED
+                        || state.getStatus() == QuestStatus.CLAIMING
+                        || state.getStatus() == QuestStatus.CLAIMED)
                 .orElse(false);
     }
 
@@ -100,8 +107,30 @@ public final class PlayerQuestStorage {
 
         Optional<PlayerQuestState> previousState = getState(playerUuid, questId);
         long now = System.currentTimeMillis();
+        long completedAt = previousState.map(PlayerQuestState::getCompletedAt).filter(value -> value > 0).orElse(now);
         long claimedAt = getState(playerUuid, questId).map(PlayerQuestState::getClaimedAt).orElse(0L);
-        setState(playerUuid, questId, new PlayerQuestState(playerUuid, questId, QuestStatus.COMPLETED, now, claimedAt));
+        setState(playerUuid, questId, new PlayerQuestState(playerUuid, questId, QuestStatus.COMPLETED, completedAt, claimedAt));
+        try {
+            save();
+        } catch (IOException exception) {
+            restoreState(playerUuid, questId, previousState);
+            throw exception;
+        }
+    }
+
+    public void markClaiming(UUID playerUuid, String questId) throws IOException {
+        Optional<PlayerQuestState> previousState = getState(playerUuid, questId);
+        if (previousState.isPresent() && previousState.get().getStatus() == QuestStatus.CLAIMED) {
+            throw new IllegalStateException("quest has already been claimed: " + questId);
+        }
+        if (previousState.isPresent() && previousState.get().getStatus() == QuestStatus.CLAIMING) {
+            throw new IllegalStateException("quest reward claim is already in progress: " + questId);
+        }
+
+        long now = System.currentTimeMillis();
+        long completedAt = previousState.map(PlayerQuestState::getCompletedAt).filter(value -> value > 0).orElse(now);
+        long claimedAt = previousState.map(PlayerQuestState::getClaimedAt).orElse(0L);
+        setState(playerUuid, questId, new PlayerQuestState(playerUuid, questId, QuestStatus.CLAIMING, completedAt, claimedAt));
         try {
             save();
         } catch (IOException exception) {
@@ -130,10 +159,17 @@ public final class PlayerQuestStorage {
     public void markStatus(UUID playerUuid, String questId, QuestStatus status) throws IOException {
         switch (status) {
             case COMPLETED -> markCompleted(playerUuid, questId);
+            case CLAIMING -> markClaiming(playerUuid, questId);
             case CLAIMED -> markClaimed(playerUuid, questId);
             case NOT_STARTED -> {
+                Optional<PlayerQuestState> previousState = getState(playerUuid, questId);
                 setState(playerUuid, questId, new PlayerQuestState(playerUuid, questId, QuestStatus.NOT_STARTED, 0L, 0L));
-                save();
+                try {
+                    save();
+                } catch (IOException exception) {
+                    restoreState(playerUuid, questId, previousState);
+                    throw exception;
+                }
             }
         }
     }
@@ -206,16 +242,34 @@ public final class PlayerQuestStorage {
             for (Map.Entry<String, Object> questEntry : questStates.entrySet()) {
                 String questId = questEntry.getKey();
                 Map<String, Object> stateValue = asObject(questEntry.getValue(), "quest state");
-                QuestStatus status = QuestStatus.valueOf(asString(stateValue.get("status"), "status"));
+                String statusValue = asString(stateValue.get("status"), "status");
+                Optional<QuestStatus> status = parseStatus(statusValue, playerUuid, questId);
+                if (status.isEmpty()) {
+                    continue;
+                }
                 long completedAt = asLong(stateValue.get("completedAt"), "completedAt");
                 long claimedAt = asLong(stateValue.get("claimedAt"), "claimedAt");
-                decodedQuestStates.put(questId, new PlayerQuestState(playerUuid, questId, status, completedAt, claimedAt));
+                decodedQuestStates.put(questId, new PlayerQuestState(playerUuid, questId, status.get(), completedAt, claimedAt));
             }
 
             decodedStates.put(playerUuid, decodedQuestStates);
         }
 
         return decodedStates;
+    }
+
+    private static Optional<QuestStatus> parseStatus(String statusValue, UUID playerUuid, String questId) {
+        try {
+            return Optional.of(QuestStatus.valueOf(statusValue));
+        } catch (IllegalArgumentException exception) {
+            LOGGER.warn(
+                    "Unknown player quest status '{}' for player UUID {} quest {}. The entry will be ignored.",
+                    statusValue,
+                    playerUuid,
+                    questId
+            );
+            return Optional.empty();
+        }
     }
 
     private static void appendStringField(StringBuilder builder, String name, String value, boolean trailingComma, int indent) {

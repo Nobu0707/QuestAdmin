@@ -49,6 +49,7 @@ public final class QuestMenuItemFactory {
         Item item = switch (status) {
             case NOT_STARTED -> Items.WRITABLE_BOOK;
             case COMPLETED -> Items.EMERALD;
+            case CLAIMING -> Items.CLOCK;
             case CLAIMED -> Items.BARRIER;
         };
 
@@ -96,6 +97,9 @@ public final class QuestMenuItemFactory {
         lore.add(Component.literal(quest.getDescription()).withStyle(ChatFormatting.GRAY));
         lore.add(Component.empty());
         lore.add(Component.literal("状態: " + getStatusLabel(status)).withStyle(getStatusColor(status)));
+        if (status == QuestStatus.CLAIMING) {
+            lore.add(Component.literal("管理者確認が必要です。再受け取りはできません。").withStyle(ChatFormatting.RED));
+        }
         lore.add(Component.literal("必要: " + requirement.getItemId() + " x" + requirement.getAmount()).withStyle(ChatFormatting.GRAY));
         lore.add(Component.literal("所持: " + countRequirement(player, quest) + " / " + requirement.getAmount()).withStyle(ChatFormatting.GRAY));
         lore.add(Component.literal("報酬: " + quest.getReward().getMoney()).withStyle(ChatFormatting.GOLD));
@@ -107,6 +111,7 @@ public final class QuestMenuItemFactory {
         return switch (status) {
             case NOT_STARTED -> resolveItem(quest.getRequirement().getItemId()).orElse(Items.BOOK);
             case COMPLETED -> Items.EMERALD;
+            case CLAIMING -> Items.CLOCK;
             case CLAIMED -> Items.PAPER;
         };
     }
@@ -135,6 +140,7 @@ public final class QuestMenuItemFactory {
         return switch (status) {
             case NOT_STARTED -> "未完了";
             case COMPLETED -> "完了済み";
+            case CLAIMING -> "報酬処理中（管理者確認が必要）";
             case CLAIMED -> "報酬受取済み";
         };
     }
@@ -143,6 +149,7 @@ public final class QuestMenuItemFactory {
         return switch (status) {
             case NOT_STARTED -> "左クリック: クエスト完了を試行";
             case COMPLETED -> "左クリック: 報酬を受け取る";
+            case CLAIMING -> "左クリック: 報酬処理中を確認";
             case CLAIMED -> "左クリック: 受取済みを確認";
         };
     }
@@ -151,6 +158,7 @@ public final class QuestMenuItemFactory {
         return switch (status) {
             case NOT_STARTED -> "クエスト完了を試行";
             case COMPLETED -> "報酬を受け取る";
+            case CLAIMING -> "報酬処理中";
             case CLAIMED -> "報酬受取済み";
         };
     }
@@ -159,6 +167,7 @@ public final class QuestMenuItemFactory {
         return switch (status) {
             case NOT_STARTED -> ChatFormatting.WHITE;
             case COMPLETED -> ChatFormatting.GREEN;
+            case CLAIMING -> ChatFormatting.RED;
             case CLAIMED -> ChatFormatting.GRAY;
         };
     }

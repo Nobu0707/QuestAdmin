@@ -350,6 +350,7 @@ public final class QuestCommands {
                 .map(PlayerQuestState::getStatus)
                 .map(status -> switch (status) {
                     case CLAIMED -> "報酬受取済み";
+                    case CLAIMING -> "報酬処理中（管理者確認が必要）";
                     case COMPLETED -> "完了済み";
                     case NOT_STARTED -> "未完了";
                 })
