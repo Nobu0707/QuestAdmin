@@ -1,10 +1,12 @@
 package net.nobu0707.questadmin.quest;
 
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -13,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 public final class QuestStorage {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private final Path questsPath;
     private List<QuestDefinition> quests = List.of();
 
@@ -57,17 +61,13 @@ public final class QuestStorage {
             quests = loadedQuests;
             return LoadResult.success(loadedQuests);
         } catch (IOException | RuntimeException exception) {
-            System.err.println("[QuestAdmin] Failed to load quests from " + questsPath + ": " + exception.getMessage());
+            LOGGER.error("Failed to load quests from {}.", questsPath, exception);
             return LoadResult.failure(quests, exception.getMessage());
         }
     }
 
     public void saveQuests(Collection<QuestDefinition> questsToSave) throws IOException {
-        Files.createDirectories(questsPath.getParent());
-
-        Path temporaryPath = questsPath.resolveSibling(questsPath.getFileName() + ".tmp");
-        Files.writeString(temporaryPath, encodeQuestList(questsToSave), StandardCharsets.UTF_8);
-        Files.move(temporaryPath, questsPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        StorageFileUtil.writeStringSafely(questsPath, encodeQuestList(questsToSave), LOGGER);
         quests = List.copyOf(questsToSave);
     }
 
@@ -76,7 +76,7 @@ public final class QuestStorage {
         try {
             saveQuests(List.of(sampleQuest));
         } catch (IOException exception) {
-            System.err.println("[QuestAdmin] Failed to create sample quest file at " + questsPath + ": " + exception.getMessage());
+            LOGGER.error("Failed to create sample quest file at {}.", questsPath, exception);
             quests = List.of(sampleQuest);
         }
     }

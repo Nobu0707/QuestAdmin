@@ -5,7 +5,7 @@
 QuestAdmin は Minecraft Forge 1.20.1 向けのクエスト管理MODです。
 運営側がクエストを管理し、プレイヤーがクエストを達成すると Lightman's Currency の銀行口座へ報酬が支払われます。
 
-現在は **Phase 10 完了 / v1.0.0 MVP完成版** です。
+現在は **Phase 11.2 完了 / v1.0.1 安定化版** です。
 
 ## 2. 対応環境
 
@@ -16,7 +16,7 @@ QuestAdmin は Minecraft Forge 1.20.1 向けのクエスト管理MODです。
 | Java | 17 |
 | MOD名 | QuestAdmin |
 | mod id | questadmin |
-| 現在バージョン | 1.0.0 |
+| 現在バージョン | 1.0.1 |
 | 必須経済MOD | Lightman's Currency |
 | Lightman's Currency mod id | lightmanscurrency |
 | 開発時参照jar | lightmanscurrency-1.20.1-2.3.0.4e.jar |
@@ -55,6 +55,8 @@ Forge 1.20.1 では、MOD初期化は `@Mod("questadmin")` を起点にします
 - Phase 8: ITEM_DELIVERY クエスト作成
 - Phase 9: 既存クエスト編集とMVP安定化
 - Phase 10: v1.0.0 MVP配布準備
+- Phase 11.1: 報酬claim安全化 / CLAIMING 状態導入
+- Phase 11.2: リポジトリ衛生修正 / 保存I/O安全化
 
 ## 5. 実装済み機能一覧
 
@@ -64,10 +66,10 @@ Forge 1.20.1 では、MOD初期化は `@Mod("questadmin")` を起点にします
 - ITEM_DELIVERY クエスト
 - 必要アイテム所持数確認
 - 完了時の必要アイテム消費
-- COMPLETED / CLAIMED 状態保存
+- COMPLETED / CLAIMING / CLAIMED 状態保存
 - repeatable=false の再完了防止
 - Lightman's Currency 銀行口座への報酬入金
-- 入金成功時のみ CLAIMED へ変更
+- 報酬claim時は先に CLAIMING を保存し、入金成功時のみ CLAIMED へ変更
 - 二重claim防止
 - プレイヤー用GUI
 - 管理者用GUI
@@ -170,14 +172,16 @@ Lightman's Currency 開発時参照:
 libs/lightmanscurrency-1.20.1-2.3.0.4e.jar
 ```
 
+このjarはGit管理しません。別PCへ移行した場合は、開発環境の `libs/` に手動配置してください。
+
 サーバー側 mods 例:
 
 ```text
-questadmin-1.0.0.jar
+questadmin-1.0.1.jar
 lightmanscurrency-1.20.1-2.3.0.4e.jar
 ```
 
-QuestAdmin jar に Lightman's Currency 本体は同梱しません。
+QuestAdmin jar に Lightman's Currency 本体は同梱しません。配布時は QuestAdmin jar と Lightman's Currency jar を別々に `mods` へ入れます。
 
 ## 10. ビルド手順
 
@@ -188,7 +192,7 @@ QuestAdmin jar に Lightman's Currency 本体は同梱しません。
 成果物:
 
 ```text
-build/libs/questadmin-1.0.0.jar
+build/libs/questadmin-1.0.1.jar
 ```
 
 jar確認:
@@ -211,7 +215,7 @@ grep -R "fabric\|FabricLoader\|ModInitializer\|net.fabricmc" -n src build.gradle
 3. Gradle Wrapper 一式があることを確認します。
 4. `libs/lightmanscurrency-1.20.1-2.3.0.4e.jar` を配置します。
 5. `./gradlew clean build` を実行します。
-6. `build/libs/questadmin-1.0.0.jar` が生成されることを確認します。
+6. `build/libs/questadmin-1.0.1.jar` が生成されることを確認します。
 7. `jar tf` で `META-INF/mods.toml` と `pack.mcmeta` を確認します。
 8. Fabric要素確認grepを実行します。
 
@@ -222,7 +226,7 @@ grep -R "fabric\|FabricLoader\|ModInitializer\|net.fabricmc" -n src build.gradle
 
 1. Forge 1.20.1 サーバーを用意します。
 2. サーバーの `mods` フォルダへ Lightman's Currency を入れます。
-3. サーバーの `mods` フォルダへ `questadmin-1.0.0.jar` を入れます。
+3. サーバーの `mods` フォルダへ `questadmin-1.0.1.jar` を入れます。
 4. クライアント側にも Lightman's Currency と QuestAdmin を入れます。
 5. サーバーを起動して接続します。
 6. `/questadmin economy status` で `available=true` を確認します。
@@ -245,7 +249,7 @@ grep -R "fabric\|FabricLoader\|ModInitializer\|net.fabricmc" -n src build.gradle
 - `versionRange="[0,)"` を指定しています。
 - Lightman's Currency がサーバー `mods` フォルダに入っていない場合、QuestAdminは起動しません。
 - 報酬は Lightman's Currency 銀行口座へ直接入金します。
-- 入金成功時のみ `CLAIMED` に変更します。
+- 報酬claim時は先に `CLAIMING` を保存し、入金成功時のみ `CLAIMED` に変更します。
 
 ## 14. 既知の制限
 
@@ -257,7 +261,14 @@ grep -R "fabric\|FabricLoader\|ModInitializer\|net.fabricmc" -n src build.gradle
 - Web管理画面、MySQL保存、村人/NPC連携は未実装です。
 - Lightman's Currency の銀行口座表示で `1e5g` のような表記になる場合がありますが、残高増減と二重claim防止を確認してください。
 
-## 15. 次期Phase候補
+## 15. Phase 11.2 メモ
+
+- `quests.json` / `player_quests.json` の保存処理は一時ファイルへ書き込んでから置換します。
+- `ATOMIC_MOVE` 非対応環境ではログを出して非atomic置換へfallbackします。
+- 保存失敗時は例外つきでログに出し、サーバーをクラッシュさせない既存方針を維持します。
+- `build/`、`.gradle/`、外部MOD jar、生成jar、レビュー用生成物はGit管理しません。
+
+## 16. 次期Phase候補
 
 - 実機テスト結果に基づく不具合修正
 - 管理者GUIのページングや検索
@@ -266,4 +277,4 @@ grep -R "fabric\|FabricLoader\|ModInitializer\|net.fabricmc" -n src build.gradle
 - 新しいクエスト種別の設計検討
 - 村人/NPC連携の設計検討
 
-Phase 10時点では、新機能追加ではなく v1.0.0 MVP 配布準備までを完了しています。
+Phase 11.2時点では、新機能追加ではなく v1.0.1 安定化対応までを完了しています。

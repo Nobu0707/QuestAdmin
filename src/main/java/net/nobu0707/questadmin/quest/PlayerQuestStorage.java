@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,11 +47,7 @@ public final class PlayerQuestStorage {
     }
 
     public void save() throws IOException {
-        Files.createDirectories(playerQuestsPath.getParent());
-
-        Path temporaryPath = playerQuestsPath.resolveSibling(playerQuestsPath.getFileName() + ".tmp");
-        Files.writeString(temporaryPath, encodePlayerQuestStates(states), StandardCharsets.UTF_8);
-        Files.move(temporaryPath, playerQuestsPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        StorageFileUtil.writeStringSafely(playerQuestsPath, encodePlayerQuestStates(states), LOGGER);
     }
 
     public Path getPlayerQuestsPath() {

@@ -5,3 +5,6 @@ build/
 out/
 *.class
 *.jar
+review-artifacts/
+build_error.log
+phase*_failed_diff.patch

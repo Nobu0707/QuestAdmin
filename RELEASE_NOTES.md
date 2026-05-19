@@ -1,5 +1,28 @@
 # Release Notes
 
+## QuestAdmin 1.0.1
+
+### 概要
+
+v1.0.0 MVP の安定化版です。
+Phase 11.2 として、リポジトリ衛生修正と保存I/O安全化を行いました。
+
+### 変更内容
+
+- `quests.json` / `player_quests.json` の保存処理を共通化
+- 一時ファイル書き込み後の置換に `ATOMIC_MOVE` fallback を追加
+- 保存失敗時のログを例外つきで出力するよう改善
+- `QuestStorage` の `System.err.println` をLoggerへ置換
+- 外部MOD jar、生成jar、`build/`、`.gradle/`、レビュー用生成物をGit管理しない方針を明記
+- Linux / WSL 用の `gradlew` 実行権限を確認
+
+### 配布物
+
+- `build/libs/questadmin-1.0.1.jar`
+
+QuestAdmin jar に Lightman's Currency 本体は同梱していません。
+Lightman's Currency はサーバーとクライアント双方の `mods` フォルダへ別途配置してください。
+
 ## QuestAdmin 1.0.0
 
 ### 概要
