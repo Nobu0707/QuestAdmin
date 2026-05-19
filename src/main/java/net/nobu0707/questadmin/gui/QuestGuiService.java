@@ -34,6 +34,10 @@ public final class QuestGuiService {
             return ActionResult.failure("QuestAdmin: このクエストの報酬は既に受け取り済みです。");
         }
 
+        if (status == QuestStatus.CLAIMING) {
+            return ActionResult.failure("QuestAdmin: 報酬受け取り処理中、または支払い結果の確認が必要です。管理者へ連絡してください。");
+        }
+
         if (status == QuestStatus.COMPLETED) {
             QuestRewardService.ClaimResult result = createRewardService().claimReward(player, questId);
             return new ActionResult(result.success(), result.message(), result.secondaryMessage(), true);
