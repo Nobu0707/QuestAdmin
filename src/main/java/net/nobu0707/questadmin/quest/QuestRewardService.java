@@ -68,7 +68,7 @@ public final class QuestRewardService {
         }
 
         long amount = quest.getReward().getMoney();
-        if (amount <= 0) {
+        if (amount < 0) {
             return ClaimResult.failure("QuestAdmin: 報酬金額が不正です。");
         }
 
@@ -89,7 +89,7 @@ public final class QuestRewardService {
 
         boolean deposited;
         try {
-            deposited = economyService.deposit(player.getUUID(), amount);
+            deposited = amount == 0 || economyService.deposit(player.getUUID(), amount);
         } catch (RuntimeException | LinkageError exception) {
             LOGGER.error(
                     "Lightman's Currency deposit threw an exception. playerUuid={}, questId={}, amount={}",

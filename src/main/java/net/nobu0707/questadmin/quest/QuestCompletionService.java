@@ -1,12 +1,9 @@
 package net.nobu0707.questadmin.quest;
 
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,7 +42,8 @@ public final class QuestCompletionService {
             return CompletionResult.failure("QuestAdmin: このクエストは既に完了済みです。");
         }
 
-        if (quest.getRequirement().getAmount() <= 0) {
+        QuestValidationResult amountValidation = QuestValidator.validateAmount(quest.getRequirement().getAmount());
+        if (!amountValidation.isValid()) {
             return CompletionResult.failure("QuestAdmin: クエスト定義の必要数が不正です。");
         }
 
@@ -96,16 +94,7 @@ public final class QuestCompletionService {
     }
 
     private Optional<Item> resolveItem(String itemId) {
-        ResourceLocation resourceLocation = ResourceLocation.tryParse(itemId);
-        if (resourceLocation == null) {
-            return Optional.empty();
-        }
-
-        Optional<Item> item = BuiltInRegistries.ITEM.getOptional(resourceLocation);
-        if (item.isEmpty() || item.get() == Items.AIR) {
-            return Optional.empty();
-        }
-        return item;
+        return QuestValidator.resolveItem(itemId);
     }
 
     private static int countItem(NonNullList<ItemStack> stacks, Item item) {

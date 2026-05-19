@@ -5,8 +5,8 @@ QuestAdmin は、Forge 1.20.1 向けのクエスト管理MODです。
 
 ## MOD概要
 
-QuestAdmin v1.0.1 は ITEM_DELIVERY クエストに対応した v1.0.0 MVP の安定化版です。
-Phase 11.2 ではリポジトリ衛生修正と保存I/O安全化を行っています。
+QuestAdmin v1.0.2 は ITEM_DELIVERY クエストに対応した v1.0.0 MVP の安定化版です。
+Phase 11.3 ではクエスト定義の入力検証と `quests.json` 読み込み時の不正データ耐性を強化しています。
 
 管理者は `/questadmin` のGUIとチャット入力ステップでクエストを管理できます。
 プレイヤーは `/quest` のGUIまたはコマンドからクエストの確認、完了、報酬受け取りを行えます。
@@ -18,7 +18,7 @@ Phase 11.2 ではリポジトリ衛生修正と保存I/O安全化を行ってい
 - Java 17
 - Lightman's Currency 1.20.1-2.3.0.4e などの Forge 1.20.1 対応版
 - mod id: `questadmin`
-- 現在のバージョン: `1.0.1`
+- 現在のバージョン: `1.0.2`
 
 ## 必須MOD
 
@@ -45,7 +45,7 @@ libs/lightmanscurrency-1.20.1-2.3.0.4e.jar
 
 1. Forge 1.20.1 サーバーを用意します。
 2. `mods` フォルダへ Lightman's Currency を入れます。
-3. `mods` フォルダへ `questadmin-1.0.1.jar` を入れます。
+3. `mods` フォルダへ `questadmin-1.0.2.jar` を入れます。
 4. サーバーを起動します。
 5. 初回起動時、必要に応じて `config/questadmin/quests.json` と `config/questadmin/player_quests.json` が生成されます。
 
@@ -53,7 +53,7 @@ libs/lightmanscurrency-1.20.1-2.3.0.4e.jar
 
 1. Forge 1.20.1 クライアントを用意します。
 2. `mods` フォルダへ Lightman's Currency を入れます。
-3. `mods` フォルダへ `questadmin-1.0.1.jar` を入れます。
+3. `mods` フォルダへ `questadmin-1.0.2.jar` を入れます。
 4. サーバーへ接続します。
 
 ## 主な機能
@@ -179,14 +179,18 @@ GUI操作時もサーバー側で権限確認を行います。
 ## 入力値の制限
 
 - `questId`: 半角英数字、`_`、`-` のみ。重複不可。
+- `title`: 1文字以上64文字以下。
+- `description`: 256文字以下。未指定時は空文字として扱います。
 - `itemId`: Minecraftに存在するアイテムIDのみ。
 - `amount`: 1以上999999以下。
 - `reward money`: 0以上999999999以下。
-- `repeatable` / `enabled`: `true` または `false`。
+- `repeatable`: 現時点では未対応です。`false` のみ使用できます。
+- `enabled`: `true` または `false`。
 
 ## 注意事項
 
 - 現在対応しているクエスト種別は `ITEM_DELIVERY` のみです。
+- `repeatable=true` の繰り返しクエストは現時点では未対応です。
 - 報酬は Lightman's Currency 銀行口座入金のみです。
 - Lightman's Currency が無いと起動しません。
 - QuestAdmin jar に Lightman's Currency は同梱しません。

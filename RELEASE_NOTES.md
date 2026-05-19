@@ -1,5 +1,29 @@
 # Release Notes
 
+## QuestAdmin 1.0.2
+
+### 概要
+
+v1.0.0 MVP の安定化版です。
+Phase 11.3 として、クエストデータ検証と `quests.json` 読み込み時の安全性を強化しました。
+
+### 変更内容
+
+- `QuestValidator` / `QuestValidationResult` / `QuestValidationError` を追加
+- `questId` 形式、重複、title、description、itemId、amount、reward money の検証を共通化
+- `quests.json` 読み込み時、不正なクエストをスキップしてwarnログへ理由を出力
+- JSON構文不正やファイルI/O失敗時は既存のメモリ上クエストを維持
+- `ITEM_DELIVERY` 以外のtypeをMVP未対応として安全にスキップ
+- `repeatable=true` を現時点では未対応として拒否
+- reward money `0` を検証上の有効値として扱うよう調整
+
+### 配布物
+
+- `build/libs/questadmin-1.0.2.jar`
+
+QuestAdmin jar に Lightman's Currency 本体は同梱していません。
+Lightman's Currency はサーバーとクライアント双方の `mods` フォルダへ別途配置してください。
+
 ## QuestAdmin 1.0.1
 
 ### 概要

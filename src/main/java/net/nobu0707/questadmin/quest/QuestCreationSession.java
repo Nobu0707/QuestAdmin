@@ -1,20 +1,8 @@
 package net.nobu0707.questadmin.quest;
 
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.Items;
-
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 public final class QuestCreationSession {
-    private static final Pattern QUEST_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]+");
-    private static final int TITLE_MAX_LENGTH = 128;
-    private static final int DESCRIPTION_MAX_LENGTH = 512;
-    private static final int MAX_AMOUNT = 999_999;
-    private static final long MAX_REWARD_MONEY = 999_999_999L;
-
     private QuestCreationStep step = QuestCreationStep.QUEST_ID;
     private String questId = "";
     private String title = "";
@@ -60,12 +48,9 @@ public final class QuestCreationSession {
     }
 
     private StepResult acceptQuestId(String value, QuestStorage storage) {
-        if (value.isBlank() || !QUEST_ID_PATTERN.matcher(value).matches()) {
-            return StepResult.retry("QuestAdmin: questId が不正です。半角英数字、_、- を使用してください。");
-        }
-
-        if (storage.getQuests().stream().anyMatch(quest -> quest.getId().equals(value))) {
-            return StepResult.retry("QuestAdmin: 既に同じquestIdのクエストが存在します: " + value);
+        QuestValidationResult validationResult = QuestValidator.validateQuestIdForCreate(value, storage.getQuests());
+        if (!validationResult.isValid()) {
+            return StepResult.retry(validationResult.firstMessage());
         }
 
         questId = value;
@@ -73,12 +58,9 @@ public final class QuestCreationSession {
     }
 
     private StepResult acceptTitle(String value) {
-        if (value.isBlank()) {
-            return StepResult.retry("QuestAdmin: title は空にできません。");
-        }
-
-        if (value.length() > TITLE_MAX_LENGTH) {
-            return StepResult.retry("QuestAdmin: title が長すぎます。最大 " + TITLE_MAX_LENGTH + " 文字です。");
+        QuestValidationResult validationResult = QuestValidator.validateTitle(value);
+        if (!validationResult.isValid()) {
+            return StepResult.retry(validationResult.firstMessage());
         }
 
         title = value;
@@ -88,15 +70,17 @@ public final class QuestCreationSession {
     private StepResult acceptDescription(String input) {
         String value = input.trim();
         description = value.equals("-") ? "" : value;
-        if (description.length() > DESCRIPTION_MAX_LENGTH) {
-            return StepResult.retry("QuestAdmin: description が長すぎます。最大 " + DESCRIPTION_MAX_LENGTH + " 文字です。");
+        QuestValidationResult validationResult = QuestValidator.validateDescription(description);
+        if (!validationResult.isValid()) {
+            return StepResult.retry(validationResult.firstMessage());
         }
         return StepResult.accepted();
     }
 
     private StepResult acceptItemId(String value) {
-        if (resolveItem(value).isEmpty()) {
-            return StepResult.retry("QuestAdmin: アイテムIDが見つかりません: " + value);
+        QuestValidationResult validationResult = QuestValidator.validateItemId(value);
+        if (!validationResult.isValid()) {
+            return StepResult.retry(validationResult.firstMessage());
         }
 
         itemId = value;
@@ -105,8 +89,13 @@ public final class QuestCreationSession {
 
     private StepResult acceptAmount(String value) {
         Optional<Integer> parsedAmount = parseInt(value);
-        if (parsedAmount.isEmpty() || parsedAmount.get() < 1 || parsedAmount.get() > MAX_AMOUNT) {
-            return StepResult.retry("QuestAdmin: 必要個数は 1 以上 " + MAX_AMOUNT + " 以下で入力してください。");
+        if (parsedAmount.isEmpty()) {
+            return StepResult.retry("QuestAdmin: 必要個数は整数で入力してください。");
+        }
+
+        QuestValidationResult validationResult = QuestValidator.validateAmount(parsedAmount.get());
+        if (!validationResult.isValid()) {
+            return StepResult.retry(validationResult.firstMessage());
         }
 
         amount = parsedAmount.get();
@@ -115,8 +104,13 @@ public final class QuestCreationSession {
 
     private StepResult acceptRewardMoney(String value) {
         Optional<Long> parsedRewardMoney = parseLong(value);
-        if (parsedRewardMoney.isEmpty() || parsedRewardMoney.get() < 0 || parsedRewardMoney.get() > MAX_REWARD_MONEY) {
-            return StepResult.retry("QuestAdmin: 報酬金額は 0 以上 " + MAX_REWARD_MONEY + " 以下で入力してください。");
+        if (parsedRewardMoney.isEmpty()) {
+            return StepResult.retry("QuestAdmin: 報酬金額は整数で入力してください。");
+        }
+
+        QuestValidationResult validationResult = QuestValidator.validateRewardMoney(parsedRewardMoney.get());
+        if (!validationResult.isValid()) {
+            return StepResult.retry(validationResult.firstMessage());
         }
 
         rewardMoney = parsedRewardMoney.get();
@@ -127,6 +121,11 @@ public final class QuestCreationSession {
         Optional<Boolean> parsedValue = parseBoolean(value);
         if (parsedValue.isEmpty()) {
             return StepResult.retry("QuestAdmin: true または false を入力してください。");
+        }
+
+        QuestValidationResult validationResult = QuestValidator.validateRepeatable(parsedValue.get());
+        if (!validationResult.isValid()) {
+            return StepResult.retry(validationResult.firstMessage());
         }
 
         repeatable = parsedValue.get();
@@ -157,19 +156,6 @@ public final class QuestCreationSession {
                 now,
                 now
         );
-    }
-
-    private static Optional<Item> resolveItem(String itemId) {
-        ResourceLocation resourceLocation = ResourceLocation.tryParse(itemId);
-        if (resourceLocation == null) {
-            return Optional.empty();
-        }
-
-        Optional<Item> item = BuiltInRegistries.ITEM.getOptional(resourceLocation);
-        if (item.isEmpty() || item.get() == Items.AIR) {
-            return Optional.empty();
-        }
-        return item;
     }
 
     private static Optional<Integer> parseInt(String value) {

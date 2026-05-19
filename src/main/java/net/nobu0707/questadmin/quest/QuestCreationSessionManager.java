@@ -104,6 +104,11 @@ public final class QuestCreationSessionManager {
 
         ArrayList<QuestDefinition> updatedQuests = new ArrayList<>(storage.getQuests());
         updatedQuests.add(quest);
+        QuestValidationResult validationResult = QuestValidator.validateQuestList(updatedQuests);
+        if (!validationResult.isValid()) {
+            player.sendSystemMessage(Component.literal(validationResult.firstMessage()).withStyle(ChatFormatting.RED));
+            return;
+        }
 
         try {
             storage.saveQuests(updatedQuests);

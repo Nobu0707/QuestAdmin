@@ -103,7 +103,8 @@ public final class QuestCommands {
         }
 
         source.sendSuccess(
-                () -> Component.literal("QuestAdmin: クエスト定義を再読み込みしました。読み込み件数: " + result.quests().size()),
+                () -> Component.literal("QuestAdmin: クエスト定義を再読み込みしました。読み込み件数: "
+                        + result.quests().size() + " / スキップ: " + result.skippedCount()),
                 true
         );
         return result.quests().size();

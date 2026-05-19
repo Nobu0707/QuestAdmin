@@ -7,7 +7,7 @@ public enum QuestCreationStep {
     ITEM_ID("必要アイテムIDを入力してください。例: minecraft:stone"),
     AMOUNT("必要個数を入力してください。"),
     REWARD_MONEY("報酬金額を入力してください。"),
-    REPEATABLE("繰り返し可能にしますか？ true / false"),
+    REPEATABLE("repeatable は現在未対応です。false を入力してください。"),
     ENABLED("有効化しますか？ true / false");
 
     private final String prompt;

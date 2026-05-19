@@ -10,9 +10,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class QuestStorage {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -57,9 +59,9 @@ public final class QuestStorage {
     public LoadResult reloadQuests() {
         try {
             String json = Files.readString(questsPath, StandardCharsets.UTF_8);
-            List<QuestDefinition> loadedQuests = decodeQuestList(json);
-            quests = loadedQuests;
-            return LoadResult.success(loadedQuests);
+            DecodedQuestList decodedQuestList = decodeQuestList(json);
+            quests = decodedQuestList.quests();
+            return LoadResult.success(decodedQuestList.quests(), decodedQuestList.skippedCount());
         } catch (IOException | RuntimeException exception) {
             LOGGER.error("Failed to load quests from {}.", questsPath, exception);
             return LoadResult.failure(quests, exception.getMessage());
@@ -67,6 +69,11 @@ public final class QuestStorage {
     }
 
     public void saveQuests(Collection<QuestDefinition> questsToSave) throws IOException {
+        QuestValidationResult validationResult = QuestValidator.validateQuestList(questsToSave);
+        if (!validationResult.isValid()) {
+            throw new IllegalArgumentException(validationResult.joinedMessages());
+        }
+
         StorageFileUtil.writeStringSafely(questsPath, encodeQuestList(questsToSave), LOGGER);
         quests = List.copyOf(questsToSave);
     }
@@ -81,13 +88,13 @@ public final class QuestStorage {
         }
     }
 
-    public record LoadResult(boolean success, List<QuestDefinition> quests, String errorMessage) {
-        private static LoadResult success(List<QuestDefinition> quests) {
-            return new LoadResult(true, List.copyOf(quests), "");
+    public record LoadResult(boolean success, List<QuestDefinition> quests, String errorMessage, int skippedCount) {
+        private static LoadResult success(List<QuestDefinition> quests, int skippedCount) {
+            return new LoadResult(true, List.copyOf(quests), "", skippedCount);
         }
 
         private static LoadResult failure(List<QuestDefinition> quests, String errorMessage) {
-            return new LoadResult(false, List.copyOf(quests), errorMessage);
+            return new LoadResult(false, List.copyOf(quests), errorMessage, 0);
         }
     }
 
@@ -178,17 +185,46 @@ public final class QuestStorage {
         return builder.toString();
     }
 
-    private static List<QuestDefinition> decodeQuestList(String json) {
+    private static DecodedQuestList decodeQuestList(String json) {
         Object value = new JsonParser(json).parse();
         if (!(value instanceof List<?> values)) {
-            throw new IllegalArgumentException("quest root must be a JSON array");
+            throw new IllegalArgumentException("quests.json のルートはJSON配列で指定してください。");
         }
 
         List<QuestDefinition> decodedQuests = new ArrayList<>();
-        for (Object item : values) {
-            decodedQuests.add(decodeQuest(asObject(item, "quest")));
+        Set<String> questIds = new HashSet<>();
+        int skippedCount = 0;
+
+        for (int index = 0; index < values.size(); index++) {
+            Object item = values.get(index);
+            QuestDefinition quest;
+            try {
+                quest = decodeQuest(asObject(item, "quest"));
+            } catch (RuntimeException exception) {
+                skippedCount++;
+                LOGGER.warn(
+                        "QuestAdmin: quests.json の {} 番目のクエストをスキップしました: {}",
+                        index + 1,
+                        exception.getMessage()
+                );
+                continue;
+            }
+
+            QuestValidationResult validationResult = QuestValidator.validateForLoad(quest, questIds);
+            if (!validationResult.isValid()) {
+                skippedCount++;
+                LOGGER.warn(
+                        "QuestAdmin: quests.json の {} 番目のクエストをスキップしました: {}",
+                        index + 1,
+                        validationResult.joinedMessages()
+                );
+                continue;
+            }
+
+            decodedQuests.add(quest);
+            questIds.add(quest.getId());
         }
-        return List.copyOf(decodedQuests);
+        return new DecodedQuestList(List.copyOf(decodedQuests), skippedCount);
     }
 
     private static QuestDefinition decodeQuest(Map<String, Object> value) {
@@ -198,11 +234,11 @@ public final class QuestStorage {
         return new QuestDefinition(
                 asString(value.get("id"), "id"),
                 asString(value.get("title"), "title"),
-                asString(value.get("description"), "description"),
-                QuestType.valueOf(asString(value.get("type"), "type")),
+                asOptionalString(value.get("description")),
+                asQuestType(value.get("type")),
                 new QuestRequirement(
                         asString(requirement.get("itemId"), "requirement.itemId"),
-                        Math.toIntExact(asLong(requirement.get("amount"), "requirement.amount"))
+                        asInt(requirement.get("amount"), "requirement.amount")
                 ),
                 new QuestReward(asLong(reward.get("money"), "reward.money")),
                 asBoolean(value.get("repeatable"), "repeatable"),
@@ -217,34 +253,63 @@ public final class QuestStorage {
             Map<String, Object> object = new LinkedHashMap<>();
             for (Map.Entry<?, ?> entry : map.entrySet()) {
                 if (!(entry.getKey() instanceof String key)) {
-                    throw new IllegalArgumentException(fieldName + " has a non-string key");
+                    throw new IllegalArgumentException(fieldName + " に文字列ではないキーがあります。");
                 }
                 object.put(key, entry.getValue());
             }
             return object;
         }
-        throw new IllegalArgumentException(fieldName + " must be an object");
+        throw new IllegalArgumentException(fieldName + " はJSONオブジェクトで指定してください。");
     }
 
     private static String asString(Object value, String fieldName) {
         if (value instanceof String string) {
             return string;
         }
-        throw new IllegalArgumentException(fieldName + " must be a string");
+        throw new IllegalArgumentException(fieldName + " は文字列で指定してください。");
+    }
+
+    private static String asOptionalString(Object value) {
+        if (value == null) {
+            return "";
+        }
+        if (value instanceof String string) {
+            return string;
+        }
+        throw new IllegalArgumentException("description は文字列で指定してください。");
+    }
+
+    private static QuestType asQuestType(Object value) {
+        String typeName = asString(value, "type");
+        if (!QuestType.ITEM_DELIVERY.name().equals(typeName)) {
+            throw new IllegalArgumentException("QuestAdmin: type は ITEM_DELIVERY のみ対応です: " + typeName);
+        }
+        return QuestType.ITEM_DELIVERY;
+    }
+
+    private static int asInt(Object value, String fieldName) {
+        long longValue = asLong(value, fieldName);
+        if (longValue < Integer.MIN_VALUE || longValue > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException(fieldName + " はint範囲内の整数で指定してください。");
+        }
+        return (int) longValue;
     }
 
     private static long asLong(Object value, String fieldName) {
         if (value instanceof Long longValue) {
             return longValue;
         }
-        throw new IllegalArgumentException(fieldName + " must be a number");
+        throw new IllegalArgumentException(fieldName + " は整数で指定してください。");
     }
 
     private static boolean asBoolean(Object value, String fieldName) {
         if (value instanceof Boolean booleanValue) {
             return booleanValue;
         }
-        throw new IllegalArgumentException(fieldName + " must be a boolean");
+        throw new IllegalArgumentException(fieldName + " は true または false で指定してください。");
+    }
+
+    private record DecodedQuestList(List<QuestDefinition> quests, int skippedCount) {
     }
 
     private static final class JsonParser {

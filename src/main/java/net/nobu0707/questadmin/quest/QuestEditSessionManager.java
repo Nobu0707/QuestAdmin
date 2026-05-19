@@ -130,6 +130,12 @@ public final class QuestEditSessionManager {
             return;
         }
 
+        QuestValidationResult validationResult = QuestValidator.validateQuestList(updatedQuests);
+        if (!validationResult.isValid()) {
+            player.sendSystemMessage(Component.literal(validationResult.firstMessage()).withStyle(ChatFormatting.RED));
+            return;
+        }
+
         try {
             storage.saveQuests(updatedQuests);
         } catch (IOException | RuntimeException exception) {
