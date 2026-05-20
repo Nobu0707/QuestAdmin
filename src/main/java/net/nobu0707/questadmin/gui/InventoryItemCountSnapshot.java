@@ -19,7 +19,6 @@ public final class InventoryItemCountSnapshot {
         Map<Item, Integer> counts = new HashMap<>();
         addCounts(counts, player.getInventory().items);
         addCounts(counts, player.getInventory().offhand);
-        addCounts(counts, player.getInventory().armor);
         return new InventoryItemCountSnapshot(counts);
     }
 

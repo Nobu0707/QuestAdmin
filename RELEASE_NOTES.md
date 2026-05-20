@@ -1,5 +1,29 @@
 # Release Notes
 
+## QuestAdmin 1.0.4
+
+### 概要
+
+v1.0.0 MVP の安定化版です。
+Phase 11.5 として、50人以上の同時接続や長時間運用に備え、セッションcleanupと納品対象の安全化、チャット一覧ページングを追加しました。
+
+### 変更内容
+
+- プレイヤーログアウト時にクエスト作成/編集セッションを破棄
+- サーバー停止時に作成/編集セッションMapをclear
+- `/questadmin sessions` で作成/編集セッション数を確認可能
+- アイテム納品対象を通常インベントリとオフハンドに限定し、防具欄を対象外化
+- GUI所持数表示も通常インベントリとオフハンドのみを集計
+- `/quest list <page>` を追加し、チャット一覧を1ページ10件に制限
+- `/questadmin list <page>` を追加し、管理者向けチャット一覧を1ページ10件に制限
+
+### 配布物
+
+- `build/libs/questadmin-1.0.4.jar`
+
+QuestAdmin jar に Lightman's Currency 本体は同梱していません。
+Lightman's Currency はサーバーとクライアント双方の `mods` フォルダへ別途配置してください。
+
 ## QuestAdmin 1.0.3
 
 ### 概要

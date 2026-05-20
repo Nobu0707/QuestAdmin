@@ -2,6 +2,7 @@
 # Generated build/cache artifacts
 .gradle/
 build/
+bin/
 out/
 *.class
 *.jar

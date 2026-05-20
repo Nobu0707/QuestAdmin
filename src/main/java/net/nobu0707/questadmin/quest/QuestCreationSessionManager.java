@@ -58,6 +58,20 @@ public final class QuestCreationSessionManager {
         return SESSIONS.containsKey(playerUuid);
     }
 
+    public static boolean clear(UUID playerUuid) {
+        return SESSIONS.remove(playerUuid) != null;
+    }
+
+    public static int clearAll() {
+        int sessionCount = SESSIONS.size();
+        SESSIONS.clear();
+        return sessionCount;
+    }
+
+    public static int sessionCount() {
+        return SESSIONS.size();
+    }
+
     public static void onServerChat(ServerChatEvent event) {
         ServerPlayer player = event.getPlayer();
         QuestCreationSession session = SESSIONS.get(player.getUUID());

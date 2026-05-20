@@ -1,8 +1,9 @@
 package net.nobu0707.questadmin.command;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -30,6 +31,8 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class QuestCommands {
+    private static final int CHAT_LIST_PAGE_SIZE = 10;
+
     private QuestCommands() {
     }
 
@@ -41,7 +44,14 @@ public final class QuestCommands {
                 .then(Commands.literal("reload")
                         .executes(context -> reloadQuests(context.getSource())))
                 .then(Commands.literal("list")
-                        .executes(context -> listAdminQuests(context.getSource())))
+                        .executes(context -> listAdminQuests(context.getSource(), 1))
+                        .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                                .executes(context -> listAdminQuests(
+                                        context.getSource(),
+                                        IntegerArgumentType.getInteger(context, "page")
+                                ))))
+                .then(Commands.literal("sessions")
+                        .executes(context -> showSessionCounts(context.getSource())))
                 .then(Commands.literal("create")
                         .then(Commands.literal("cancel")
                                 .executes(context -> cancelQuestCreation(context.getSource()))))
@@ -76,7 +86,12 @@ public final class QuestCommands {
         dispatcher.register(Commands.literal("quest")
                 .executes(context -> openQuestGui(context.getSource()))
                 .then(Commands.literal("list")
-                        .executes(context -> listPlayerQuests(context.getSource())))
+                        .executes(context -> listPlayerQuests(context.getSource(), 1))
+                        .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                                .executes(context -> listPlayerQuests(
+                                        context.getSource(),
+                                        IntegerArgumentType.getInteger(context, "page")
+                                ))))
                 .then(Commands.literal("complete")
                         .then(Commands.argument("questId", StringArgumentType.word())
                                 .executes(context -> completeQuest(
@@ -110,23 +125,38 @@ public final class QuestCommands {
         return result.quests().size();
     }
 
-    private static int listAdminQuests(CommandSourceStack source) {
+    private static int listAdminQuests(CommandSourceStack source, int page) {
         if (!hasAdminPermission(source)) {
             return sendNoAdminPermission(source);
         }
 
         List<QuestDefinition> quests = QuestAdminMod.getQuestStorage().getQuests();
-        source.sendSuccess(() -> Component.literal("QuestAdmin クエスト一覧:"), false);
-
         if (quests.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("QuestAdmin クエスト一覧:"), false);
             source.sendSuccess(() -> Component.literal("- 登録済みクエストはありません。"), false);
             return 0;
         }
 
-        for (QuestDefinition quest : quests) {
+        PageRange pageRange = PageRange.of(quests.size(), page);
+        source.sendSuccess(() -> Component.literal("QuestAdmin クエスト一覧: ページ "
+                + pageRange.currentPage() + " / " + pageRange.totalPages()), false);
+
+        for (QuestDefinition quest : quests.subList(pageRange.startIndex(), pageRange.endIndex())) {
             source.sendSuccess(() -> Component.literal(formatAdminQuest(quest)), false);
         }
-        return quests.size();
+        sendPagingHint(source, "/questadmin list", pageRange);
+        return pageRange.displayedCount();
+    }
+
+    private static int showSessionCounts(CommandSourceStack source) {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
+        source.sendSuccess(() -> Component.literal("QuestAdmin Sessions:"), false);
+        source.sendSuccess(() -> Component.literal("- creation: " + QuestCreationSessionManager.sessionCount()), false);
+        source.sendSuccess(() -> Component.literal("- edit: " + QuestEditSessionManager.sessionCount()), false);
+        return 1;
     }
 
     private static int showEconomyStatus(CommandSourceStack source) {
@@ -199,26 +229,31 @@ public final class QuestCommands {
         return 1;
     }
 
-    private static int listPlayerQuests(CommandSourceStack source) throws CommandSyntaxException {
+    private static int listPlayerQuests(CommandSourceStack source, int page) throws CommandSyntaxException {
         ServerPlayer player = source.getPlayerOrException();
         List<QuestDefinition> enabledQuests = QuestAdminMod.getQuestStorage().getQuests().stream()
                 .filter(QuestDefinition::isEnabled)
                 .toList();
 
-        source.sendSuccess(() -> Component.literal("受注可能なクエスト:"), false);
         if (enabledQuests.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("受注可能なクエスト:"), false);
             source.sendSuccess(() -> Component.literal("- 現在受注可能なクエストはありません。"), false);
             return 0;
         }
 
-        for (QuestDefinition quest : enabledQuests) {
+        PageRange pageRange = PageRange.of(enabledQuests.size(), page);
+        source.sendSuccess(() -> Component.literal("受注可能なクエスト: ページ "
+                + pageRange.currentPage() + " / " + pageRange.totalPages()), false);
+
+        for (QuestDefinition quest : enabledQuests.subList(pageRange.startIndex(), pageRange.endIndex())) {
             QuestRequirement requirement = quest.getRequirement();
             source.sendSuccess(() -> Component.literal("- " + quest.getTitle() + " [" + getQuestStatusLabel(player, quest) + "]"), false);
             source.sendSuccess(() -> Component.literal("  " + quest.getDescription()), false);
             source.sendSuccess(() -> Component.literal("  必要: " + requirement.getItemId() + " x" + requirement.getAmount()), false);
             source.sendSuccess(() -> Component.literal("  報酬: " + quest.getReward().getMoney()), false);
         }
-        return enabledQuests.size();
+        sendPagingHint(source, "/quest list", pageRange);
+        return pageRange.displayedCount();
     }
 
     private static int openQuestGui(CommandSourceStack source) throws CommandSyntaxException {
@@ -375,6 +410,29 @@ public final class QuestCommands {
             return QuestStatus.valueOf(statusName.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
             return null;
+        }
+    }
+
+    private static void sendPagingHint(CommandSourceStack source, String command, PageRange pageRange) {
+        if (pageRange.currentPage() < pageRange.totalPages()) {
+            source.sendSuccess(() -> Component.literal("次のページ: " + command + " " + (pageRange.currentPage() + 1)), false);
+        }
+        if (pageRange.currentPage() > 1) {
+            source.sendSuccess(() -> Component.literal("前のページ: " + command + " " + (pageRange.currentPage() - 1)), false);
+        }
+    }
+
+    private record PageRange(int currentPage, int totalPages, int startIndex, int endIndex) {
+        private static PageRange of(int totalItems, int requestedPage) {
+            int totalPages = Math.max(1, (int) Math.ceil(totalItems / (double) CHAT_LIST_PAGE_SIZE));
+            int currentPage = Math.min(requestedPage, totalPages);
+            int startIndex = (currentPage - 1) * CHAT_LIST_PAGE_SIZE;
+            int endIndex = Math.min(startIndex + CHAT_LIST_PAGE_SIZE, totalItems);
+            return new PageRange(currentPage, totalPages, startIndex, endIndex);
+        }
+
+        private int displayedCount() {
+            return endIndex - startIndex;
         }
     }
 }

@@ -79,15 +79,13 @@ public final class QuestCompletionService {
         int count = 0;
         count += countItem(player.getInventory().items, item);
         count += countItem(player.getInventory().offhand, item);
-        count += countItem(player.getInventory().armor, item);
         return count;
     }
 
     public void consumeItem(ServerPlayer player, Item item, int amount) {
         int remaining = amount;
         remaining = consumeItem(player.getInventory().items, item, remaining);
-        remaining = consumeItem(player.getInventory().offhand, item, remaining);
-        consumeItem(player.getInventory().armor, item, remaining);
+        consumeItem(player.getInventory().offhand, item, remaining);
         player.getInventory().setChanged();
     }
 
@@ -134,21 +132,18 @@ public final class QuestCompletionService {
 
     private record InventorySnapshot(
             List<ItemStack> items,
-            List<ItemStack> offhand,
-            List<ItemStack> armor
+            List<ItemStack> offhand
     ) {
         private static InventorySnapshot capture(ServerPlayer player) {
             return new InventorySnapshot(
                     copyStacks(player.getInventory().items),
-                    copyStacks(player.getInventory().offhand),
-                    copyStacks(player.getInventory().armor)
+                    copyStacks(player.getInventory().offhand)
             );
         }
 
         private void restore(ServerPlayer player) {
             restoreStacks(player.getInventory().items, items);
             restoreStacks(player.getInventory().offhand, offhand);
-            restoreStacks(player.getInventory().armor, armor);
             player.getInventory().setChanged();
         }
 
