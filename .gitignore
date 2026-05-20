@@ -9,3 +9,4 @@ out/
 review-artifacts/
 build_error.log
 phase*_failed_diff.patch
+.gradle/
