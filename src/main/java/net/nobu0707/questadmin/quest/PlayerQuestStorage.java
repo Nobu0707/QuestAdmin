@@ -47,7 +47,7 @@ public final class PlayerQuestStorage {
     }
 
     public void save() throws IOException {
-        StorageFileUtil.writeStringSafely(playerQuestsPath, encodePlayerQuestStates(states), LOGGER);
+        StorageFileUtil.writeStringSafely(playerQuestsPath, encodePlayerQuestStates(states), LOGGER, StorageKind.PLAYER_QUESTS);
     }
 
     public Path getPlayerQuestsPath() {

@@ -1,5 +1,30 @@
 # Release Notes
 
+## QuestAdmin 1.0.5
+
+### 概要
+
+v1.0.0 MVP の安定化版です。
+Phase 11.6 として、50人以上の同時接続運用に備え、保存I/O計測、遅い保存の警告ログ、保存方針ドキュメントを追加しました。
+
+### 変更内容
+
+- `quests.json` / `player_quests.json` の保存時間を計測
+- 保存成功回数、保存失敗回数、atomic fallback回数を軽量なstatic metricsで保持
+- 保存が50ms以上かかった場合にwarnログを出力
+- 保存が200ms以上かかった場合により強いwarnログを出力
+- 保存失敗時に対象ファイルと所要時間が分かるログを追加
+- `/questadmin storage status` を追加し、管理者が保存状態を確認可能
+- `docs/STORAGE_IO_STRATEGY.md` を追加し、現行の同期保存方針と将来の非同期/debounce設計メモを整理
+- 安全性優先のため、`/quest complete <questId>`、`/quest claim <questId>`、`/questadmin progress mark ...` は同期保存を維持
+
+### 配布物
+
+- `build/libs/questadmin-1.0.5.jar`
+
+QuestAdmin jar に Lightman's Currency 本体は同梱していません。
+Lightman's Currency はサーバーとクライアント双方の `mods` フォルダへ別途配置してください。
+
 ## QuestAdmin 1.0.4
 
 ### 概要

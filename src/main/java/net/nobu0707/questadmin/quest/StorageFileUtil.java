@@ -10,10 +10,35 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 public final class StorageFileUtil {
+    private static final long SLOW_SAVE_WARNING_MS = 50L;
+    private static final long VERY_SLOW_SAVE_WARNING_MS = 200L;
+
     private StorageFileUtil() {
     }
 
-    public static void writeStringSafely(Path target, String content, Logger logger) throws IOException {
+    public static void writeStringSafely(Path target, String content, Logger logger, StorageKind kind) throws IOException {
+        long startedAt = System.nanoTime();
+        boolean success = false;
+        try {
+            writeStringSafelyInternal(target, content, logger, kind);
+            success = true;
+        } finally {
+            long durationMs = elapsedMillis(startedAt);
+            if (success) {
+                StorageMetrics.recordSuccess(kind, durationMs);
+                warnIfSlowSave(kind, durationMs, logger);
+            } else {
+                StorageMetrics.recordFailure(kind, durationMs);
+                logger.error(
+                        "QuestAdmin: Saving {} failed after {} ms. See the preceding storage error for details.",
+                        kind.getFileName(),
+                        durationMs
+                );
+            }
+        }
+    }
+
+    private static void writeStringSafelyInternal(Path target, String content, Logger logger, StorageKind kind) throws IOException {
         Path parent = target.getParent();
         Path temporaryPath = target.resolveSibling(target.getFileName().toString() + ".tmp");
 
@@ -35,7 +60,7 @@ public final class StorageFileUtil {
         }
 
         try {
-            moveIntoPlace(temporaryPath, target, logger);
+            moveIntoPlace(temporaryPath, target, logger, kind);
         } catch (IOException exception) {
             logger.error("Failed to replace storage file {} with temporary file {}.", target, temporaryPath, exception);
             deleteTemporaryFile(temporaryPath, logger, exception);
@@ -43,7 +68,7 @@ public final class StorageFileUtil {
         }
     }
 
-    private static void moveIntoPlace(Path temporaryPath, Path target, Logger logger) throws IOException {
+    private static void moveIntoPlace(Path temporaryPath, Path target, Logger logger, StorageKind kind) throws IOException {
         try {
             Files.move(
                     temporaryPath,
@@ -52,6 +77,7 @@ public final class StorageFileUtil {
                     StandardCopyOption.ATOMIC_MOVE
             );
         } catch (AtomicMoveNotSupportedException exception) {
+            StorageMetrics.recordAtomicFallback(kind);
             logger.warn(
                     "Atomic move is not supported for {}. Falling back to non-atomic replace.",
                     target,
@@ -70,6 +96,36 @@ public final class StorageFileUtil {
                 throw fallbackException;
             }
         }
+    }
+
+    private static long elapsedMillis(long startedAt) {
+        return (System.nanoTime() - startedAt) / 1_000_000L;
+    }
+
+    private static void warnIfSlowSave(StorageKind kind, long durationMs, Logger logger) {
+        if (durationMs < SLOW_SAVE_WARNING_MS) {
+            return;
+        }
+
+        boolean strongWarning = durationMs >= VERY_SLOW_SAVE_WARNING_MS;
+        if (!StorageMetrics.shouldWarnSlowSave(kind, durationMs, strongWarning)) {
+            return;
+        }
+
+        if (strongWarning) {
+            logger.warn(
+                    "QuestAdmin: Saving {} took {} ms. This is a large main-thread delay; keep complete/claim synchronous but review storage load.",
+                    kind.getFileName(),
+                    durationMs
+            );
+            return;
+        }
+
+        logger.warn(
+                "QuestAdmin: Saving {} took {} ms. This may cause a main-thread delay.",
+                kind.getFileName(),
+                durationMs
+        );
     }
 
     private static void deleteTemporaryFile(Path temporaryPath, Logger logger, IOException originalException) {

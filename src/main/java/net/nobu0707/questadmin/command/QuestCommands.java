@@ -22,6 +22,8 @@ import net.nobu0707.questadmin.quest.QuestRequirement;
 import net.nobu0707.questadmin.quest.QuestRewardService;
 import net.nobu0707.questadmin.quest.QuestStatus;
 import net.nobu0707.questadmin.quest.QuestStorage;
+import net.nobu0707.questadmin.quest.StorageMetrics;
+import net.nobu0707.questadmin.quest.StorageWriteStats;
 import net.minecraftforge.event.RegisterCommandsEvent;
 
 import java.io.IOException;
@@ -52,6 +54,9 @@ public final class QuestCommands {
                                 ))))
                 .then(Commands.literal("sessions")
                         .executes(context -> showSessionCounts(context.getSource())))
+                .then(Commands.literal("storage")
+                        .then(Commands.literal("status")
+                                .executes(context -> showStorageStatus(context.getSource()))))
                 .then(Commands.literal("create")
                         .then(Commands.literal("cancel")
                                 .executes(context -> cancelQuestCreation(context.getSource()))))
@@ -169,6 +174,26 @@ public final class QuestCommands {
             source.sendSuccess(() -> Component.literal(statusLine), false);
         }
         return 1;
+    }
+
+    private static int showStorageStatus(CommandSourceStack source) {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
+        source.sendSuccess(() -> Component.literal("QuestAdmin Storage:"), false);
+        List<StorageWriteStats> stats = StorageMetrics.snapshots();
+        for (StorageWriteStats stat : stats) {
+            source.sendSuccess(
+                    () -> Component.literal("- " + stat.fileName()
+                            + " lastSaveMs=" + stat.lastSaveMs()
+                            + " success=" + stat.successCount()
+                            + " failure=" + stat.failureCount()
+                            + " atomicFallback=" + stat.atomicFallbackCount()),
+                    false
+            );
+        }
+        return stats.size();
     }
 
     private static int openAdminQuestGui(CommandSourceStack source) throws CommandSyntaxException {

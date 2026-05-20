@@ -85,7 +85,7 @@ public final class QuestStorage {
             throw new IllegalArgumentException(validationResult.joinedMessages());
         }
 
-        StorageFileUtil.writeStringSafely(questsPath, encodeQuestList(questsToSave), LOGGER);
+        StorageFileUtil.writeStringSafely(questsPath, encodeQuestList(questsToSave), LOGGER, StorageKind.QUESTS);
         quests = List.copyOf(questsToSave);
         rebuildIndex();
     }
