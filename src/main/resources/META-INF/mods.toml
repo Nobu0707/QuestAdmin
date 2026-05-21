@@ -7,7 +7,7 @@ modId="questadmin"
 version="${version}"
 displayName="QuestAdmin"
 authors="nobu0707"
-description='''Quest definition storage foundation for QuestAdmin.'''
+description='''Quest management mod for Forge servers using Lightman's Currency rewards.'''
 
 [[dependencies.questadmin]]
     modId="lightmanscurrency"

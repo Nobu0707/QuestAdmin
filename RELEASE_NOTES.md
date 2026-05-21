@@ -1,5 +1,33 @@
 # Release Notes
 
+## QuestAdmin 1.0.7
+
+### 概要
+
+v1.0.0 MVP の安定化版です。
+Phase 11.8 として、50人以上の同時接続を想定した実運用前チェックのため、運用ドキュメント、実機確認手順、既知制限、リリース前チェックを整理しました。
+
+このリリースでは新機能追加や保存形式変更は行っていません。
+
+### 変更内容
+
+- `docs/OPERATIONS_RUNBOOK.md` を追加し、導入、別PC移行、Lightman's Currency配置、通常運用、障害対応、手動復元方針を整理
+- `docs/TEST_CHECKLIST.md` を追加し、ビルド、起動、管理者機能、プレイヤー機能、安全性、50人以上想定、リリース前チェックを整理
+- `docs/KNOWN_LIMITATIONS.md` を追加し、ITEM_DELIVERY限定、repeatable未対応、Lightman's Currency必須、同期保存、手動復元、NBT未判定などを明文化
+- READMEをユーザー向けに再整理し、コマンド一覧、保存ファイル、バックアップ機能、検証機能、既知制限、詳細ドキュメント案内を更新
+- HANDOFFを開発引き継ぎ用に再整理し、Phase 11.8完了状態、v1.0.7、別PC移行、実機確認、review archive生成手順を更新
+- `docs/STORAGE_IO_STRATEGY.md` と同期保存/手動復元方針の整合を確認
+- `/questadmin storage backup` について、`player_quests.json` 未生成時は該当ファイルだけFAILEDになり得る注意を追記
+- コマンド一覧を実装済みコマンドと照合
+- バージョンを `1.0.7` に更新
+
+### 配布物
+
+- `build/libs/questadmin-1.0.7.jar`
+
+QuestAdmin jar に Lightman's Currency 本体は同梱していません。
+Lightman's Currency はサーバーとクライアント双方の `mods` フォルダへ別途配置してください。
+
 ## QuestAdmin 1.0.6
 
 ### 概要

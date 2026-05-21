@@ -1,24 +1,28 @@
 # QuestAdmin
 
-QuestAdmin は、Forge 1.20.1 向けのクエスト管理MODです。
-サーバー運営者がゲーム内でアイテム納品クエストを作成・編集・削除でき、プレイヤーはクエストを完了することで Lightman's Currency の銀行口座へ報酬を受け取れます。
+QuestAdmin は Forge 1.20.1 向けのクエスト管理MODです。サーバー運営者がゲーム内GUIとチャット入力でアイテム納品クエストを作成・編集・削除し、プレイヤーは達成後に Lightman's Currency の銀行口座へ報酬を受け取れます。
 
 ## MOD概要
 
-QuestAdmin v1.0.6 は ITEM_DELIVERY クエストに対応した v1.0.0 MVP の安定化版です。
-Phase 11.7 では保存ファイルの手動バックアップ、バックアップ一覧、保存ファイル検証コマンドを追加しています。
+QuestAdmin v1.0.7 は v1.0.0 MVP の安定化版です。
+Phase 11.8 では新機能追加ではなく、運用ドキュメント、実機確認手順、既知制限、リリース前チェックを整理しました。
 
-管理者は `/questadmin` のGUIとチャット入力ステップでクエストを管理できます。
-プレイヤーは `/quest` のGUIまたはコマンドからクエストの確認、完了、報酬受け取りを行えます。
+主な安定化内容:
+
+- 報酬claim安全化と `CLAIMING` 状態
+- GUIページングとチャット一覧ページング
+- 所持数計算キャッシュとquestId検索最適化
+- セッションcleanupと納品対象安全化
+- 保存I/O計測、遅い保存warn、保存方針ドキュメント
+- 手動バックアップ、バックアップ一覧、保存ファイル検証
 
 ## 対応環境
 
 - Minecraft 1.20.1
 - Forge 47.x
 - Java 17
-- Lightman's Currency 1.20.1-2.3.0.4e などの Forge 1.20.1 対応版
 - mod id: `questadmin`
-- 現在のバージョン: `1.0.6`
+- 現在のバージョン: `1.0.7`
 
 ## 必須MOD
 
@@ -26,54 +30,33 @@ Phase 11.7 では保存ファイルの手動バックアップ、バックアッ
   - mod id: `lightmanscurrency`
 - QuestAdmin
 
-Lightman's Currency は QuestAdmin jar に同梱されません。サーバーとクライアント双方の `mods` フォルダへ別途配置してください。
+Lightman's Currency は QuestAdmin jar に同梱されません。サーバーとクライアント双方の `mods/` へ別途配置してください。
 
-## 開発環境での依存jar
-
-Lightman's Currency のjarはGit管理しません。
-開発環境でビルドする場合は、以下のファイルを手動で配置してください。
+開発環境でビルドする場合は、以下のjarを手動配置します。
 
 ```text
 libs/lightmanscurrency-1.20.1-2.3.0.4e.jar
 ```
 
-配布時は QuestAdmin jar と Lightman's Currency jar を別々に `mods` フォルダへ入れてください。
+`libs/*.jar` はGit管理しません。別PCへ移行した場合も手動で配置してください。
 
 ## 導入方法
 
 ### サーバー
 
-1. Forge 1.20.1 サーバーを用意します。
-2. `mods` フォルダへ Lightman's Currency を入れます。
-3. `mods` フォルダへ `questadmin-1.0.6.jar` を入れます。
+1. Forge 1.20.1 / Java 17 のサーバーを用意します。
+2. `mods/` へ Lightman's Currency jar を入れます。
+3. `mods/` へ `questadmin-1.0.7.jar` を入れます。
 4. サーバーを起動します。
-5. 初回起動時、必要に応じて `config/questadmin/quests.json` と `config/questadmin/player_quests.json` が生成されます。
+5. `/questadmin economy status` で Lightman's Currency 連携を確認します。
+6. `/questadmin storage validate` で保存ファイルを確認します。
 
 ### クライアント
 
-1. Forge 1.20.1 クライアントを用意します。
-2. `mods` フォルダへ Lightman's Currency を入れます。
-3. `mods` フォルダへ `questadmin-1.0.6.jar` を入れます。
-4. サーバーへ接続します。
-
-## 主な機能
-
-- アイテム納品クエスト
-- クエスト作成
-- クエスト編集
-- クエスト削除
-- 有効/無効切替
-- プレイヤー用GUI
-- 管理者用GUI
-- GUIページング
-- プレイヤーGUI表示用の所持数計算キャッシュ
-- QuestStorageのquestId検索インデックス
-- ログアウト時/サーバー停止時の作成・編集セッションcleanup
-- チャット一覧ページング
-- 保存I/O計測と遅い保存の警告ログ
-- 管理者向け保存状態確認
-- Lightman's Currency 銀行口座への報酬支払い
-- プレイヤーごとの完了/受け取り状態保存
+1. Forge 1.20.1 / Java 17 のクライアントを用意します。
+2. `mods/` へ Lightman's Currency jar を入れます。
+3. `mods/` へ `questadmin-1.0.7.jar` を入れます。
+4. サーバーへ接続し、`/quest` でGUIが開くことを確認します。
 
 ## コマンド一覧
 
@@ -111,11 +94,18 @@ OP権限レベル2以上が必要です。
 
 ## 管理者向け使い方
 
-### クエスト作成
+`/questadmin` で管理者GUIを開きます。
 
-1. OP権限レベル2以上で `/questadmin` を実行します。
-2. 管理者GUIの「新規クエスト作成」をクリックします。
-3. チャット入力で以下を順番に入力します。
+管理者GUIでできること:
+
+- 登録済みクエスト一覧の確認
+- クエスト詳細の確認
+- 新規クエスト作成の開始
+- 既存クエスト編集の開始
+- enabled の有効/無効切替
+- 削除確認GUIを経由したクエスト削除
+
+クエスト作成は管理者GUIから開始し、チャット入力で以下を順番に入力します。
 
 ```text
 questId
@@ -128,107 +118,94 @@ repeatable
 enabled
 ```
 
-作成中に `cancel` と入力するか、`/questadmin create cancel` を実行すると作成をキャンセルできます。
-作成途中でログアウトした場合、その作成セッションは破棄されます。
+`repeatable` は現時点では `false` のみ使用できます。作成中止は `cancel` または `/questadmin create cancel` です。
 
-### クエスト編集
+既存クエストは `/questadmin edit <questId>` または管理者GUIから編集できます。変更しない項目は `-` を入力し、最後の確認で `true` を入力すると保存されます。編集中止は `cancel` または `/questadmin edit cancel` です。
 
-既存クエストは `/questadmin edit <questId>` または管理者GUIの詳細画面から編集できます。
-
-編集では以下を順番に入力します。
+保存・経済連携の通常確認:
 
 ```text
-title
-description
-required itemId
-required amount
-reward money
-repeatable
-enabled
-confirm
+/questadmin economy status
+/questadmin storage status
+/questadmin storage validate
+/questadmin storage backup
+/questadmin storage backups
+/questadmin sessions
 ```
-
-各入力で `-` を入力すると現在値を維持します。
-最後の確認で `true` を入力すると保存し、`false` または `cancel` でキャンセルします。
-編集中に `/questadmin edit cancel` を実行してもキャンセルできます。
-
-編集できない項目は `id`、`type`、`createdAt` です。編集完了時は `updatedAt` が更新されます。
-編集中にログアウトした場合、その編集セッションは破棄されます。
-
-### 管理者GUI
-
-`/questadmin` で管理者用GUIを開けます。
-
-- 登録済みクエスト一覧の確認
-- クエスト詳細の確認
-- enabled の有効/無効切替
-- 削除確認GUIを経由したクエスト削除
-- 新規クエスト作成の開始
-- 既存クエスト編集の開始
-
-GUI操作時もサーバー側で権限確認を行います。
-
-### reload / storage / economy status
-
-- `/questadmin reload` で `quests.json` を再読み込みします。
-- `/questadmin list` は1ページ10件表示です。ページ指定は `/questadmin list 2` のように実行します。
-- `/questadmin sessions` で現在の作成/編集セッション数を確認できます。
-- `/questadmin storage status` で `quests.json` / `player_quests.json` の保存時間、成功/失敗回数、atomic fallback回数を確認できます。
-- `/questadmin storage backup` で現在の `quests.json` / `player_quests.json` を手動バックアップします。
-- `/questadmin storage backups` で直近のバックアップを最大10件表示します。
-- `/questadmin storage validate` で現在の保存ファイルを読み込み専用で検証します。
-- `/questadmin economy status` で Lightman's Currency 連携状態を確認します。
 
 ## プレイヤー向け使い方
 
-1. `/quest` でプレイヤー用GUIを開きます。
+1. `/quest` でプレイヤーGUIを開きます。
 2. 有効なクエスト一覧と詳細を確認します。
-3. 必要アイテムを用意します。
+3. 必要アイテムを通常インベントリまたはオフハンドに用意します。
 4. GUIまたは `/quest complete <questId>` でクエストを完了します。
 5. GUIまたは `/quest claim <questId>` で報酬を受け取ります。
 
 `/quest list` は1ページ10件表示です。ページ指定は `/quest list 2` のように実行します。
-納品対象は通常インベントリとオフハンドです。防具欄は対象外です。
-
-報酬は Lightman's Currency の銀行口座へ入金されます。二重claimはできません。
+報酬は Lightman's Currency の銀行口座へ入金され、二重claimはできません。
 
 ## 保存ファイル
 
-- `config/questadmin/quests.json`
-- `config/questadmin/player_quests.json`
+```text
+config/questadmin/quests.json
+config/questadmin/player_quests.json
+```
 
-`quests.json` にはクエスト定義が保存されます。
-`player_quests.json` にはプレイヤーごとの完了/受け取り状態が保存されます。
-保存処理は一時ファイルへ書き込んでから置換し、`ATOMIC_MOVE` 非対応環境では非atomic置換へfallbackします。
-読み込み・保存後は `QuestStorage` 内部でquestId検索インデックスを再構築します。
-保存に50ms以上かかった場合は遅い保存としてwarnログを出し、200ms以上ではより強いwarnログを出します。ログ過多を避けるため、同種の警告は短時間で抑制されます。
+`quests.json` にはクエスト定義、`player_quests.json` にはプレイヤーごとの完了/受け取り状態が保存されます。
+
+保存処理は一時ファイルへ書き込んでから置換します。`ATOMIC_MOVE` 非対応環境では非atomic置換へfallbackします。安全性優先のため、`/quest complete <questId>`、`/quest claim <questId>`、`/questadmin progress mark ...` は同期保存を維持しています。
+
+保存に50ms以上かかった場合はwarnログ、200ms以上ではより強いwarnログを出します。`/questadmin storage status` で保存時間、成功/失敗回数、atomic fallback回数を確認できます。
+
+## バックアップ機能
+
+```text
+/questadmin storage backup
+/questadmin storage backups
+```
+
 手動バックアップは `config/questadmin/backups/` にタイムスタンプ付きで保存されます。`quests.json` と `player_quests.json` はそれぞれ最新10件程度に制限され、古いバックアップは削除されます。
-QuestAdminは自動復元や復元コマンドを提供しません。復元が必要な場合はサーバーを停止し、対象JSONを別場所へ退避してから、バックアップファイルを手動で元のファイル名へコピーしてください。
-安全性優先のため、`/quest complete <questId>`、`/quest claim <questId>`、`/questadmin progress mark ...` は現時点でも同期保存を維持しています。
-保存方針の詳細は `docs/STORAGE_IO_STRATEGY.md` を参照してください。
 
-## 入力値の制限
+初回直後などで `player_quests.json` が未生成の場合、`/questadmin storage backup` は `player_quests` だけFAILEDを表示することがあります。プレイヤー進行状況が一度保存された後に再実行してください。
 
-- `questId`: 半角英数字、`_`、`-` のみ。重複不可。
-- `title`: 1文字以上64文字以下。
-- `description`: 256文字以下。未指定時は空文字として扱います。
-- `itemId`: Minecraftに存在するアイテムIDのみ。
-- `amount`: 1以上999999以下。
-- `reward money`: 0以上999999999以下。
-- `repeatable`: 現時点では未対応です。`false` のみ使用できます。
-- `enabled`: `true` または `false`。
+QuestAdmin は自動復元や復元コマンドを提供しません。復元が必要な場合はサーバーを停止し、現在のJSONを別場所へ退避してから、バックアップファイルを手動で元のファイル名へコピーしてください。
 
-## 注意事項
+## 検証機能
 
-- 現在対応しているクエスト種別は `ITEM_DELIVERY` のみです。
-- `repeatable=true` の繰り返しクエストは現時点では未対応です。
-- 報酬は Lightman's Currency 銀行口座入金のみです。
-- Lightman's Currency が無いと起動しません。
-- QuestAdmin jar に Lightman's Currency は同梱しません。
+```text
+/questadmin storage validate
+```
+
+現在の `quests.json` と `player_quests.json` を読み込み専用で検証します。
+
+確認対象:
+
+- JSON構文
+- `quests.json` のルート形式
+- questId重複
+- `ITEM_DELIVERY` 制限
+- `repeatable=false` 制限
+- itemId / amount / reward money
+- `player_quests.json` のUUID、status、不明questId警告
+
+## 既知の制限
+
+- 対応クエスト種別は `ITEM_DELIVERY` のみです。
+- `repeatable=true` は現時点では未対応です。
+- Lightman's Currency が必須です。
 - Lightman's Currency 以外の経済MODには対応していません。
-- アイテム納品の対象は通常インベントリとオフハンドです。防具欄のアイテムは所持数表示にも完了判定にも消費にも含まれません。
-- 討伐、採掘、探索、デイリー、クエストツリー、前提クエストは未実装です。
-- クエスト削除や編集を行っても、既存の `player_quests.json` の進行状況は変更しません。
-- 無効化されたクエストはプレイヤー用一覧やGUIに表示されず、完了・報酬受け取りもできません。
-- 手動でJSONを編集する場合は `/questadmin storage backup` で事前バックアップを作成してください。
-- バックアップからの復元は自動では行われません。誤復元による進行巻き戻りや二重支払いを避けるため、必ずサーバー停止中に手動で実施してください。
+- 討伐、採掘、探索、デイリー、村人NPC、Web管理画面、MySQL保存は未実装です。
+- 納品対象は通常インベントリとオフハンドです。防具欄は対象外です。
+- NBT差分は現時点では判定しません。
+- バックアップ復元は自動ではなく手動です。
+
+詳細は `docs/KNOWN_LIMITATIONS.md` を参照してください。
+
+## 詳細ドキュメント
+
+- `docs/OPERATIONS_RUNBOOK.md`: 導入、移行、障害対応、リリース前運用確認
+- `docs/TEST_CHECKLIST.md`: ビルド、起動、管理者/プレイヤー機能、50人以上想定確認
+- `docs/KNOWN_LIMITATIONS.md`: 既知の制限
+- `docs/STORAGE_IO_STRATEGY.md`: 保存I/O方針、同期保存維持理由、将来の非同期化メモ
+- `HANDOFF.md`: 開発引き継ぎ情報
+- `RELEASE_NOTES.md`: リリース履歴
