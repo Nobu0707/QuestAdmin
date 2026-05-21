@@ -20,6 +20,15 @@ Phase 11.6 では、以下の軽量な保存I/O計測を追加しています。
 
 これらは観測用の計測です。保存順序を変えたり、非同期保存へ変更したりはしていません。
 
+Phase 11.7 では、運用事故に備えた手動バックアップと検証コマンドを追加しています。
+
+- `/questadmin storage backup`: 現在の `quests.json` / `player_quests.json` を `config/questadmin/backups/` へ保存
+- `/questadmin storage backups`: 直近のバックアップを最大10件表示
+- `/questadmin storage validate`: 現在の保存ファイルを読み込み専用で検証
+
+バックアップは `quests.json` / `player_quests.json` それぞれ最新10件程度に制限します。保存のたびにバックアップは作りません。
+QuestAdminは自動復元や復元コマンドを提供しません。復元が必要な場合は、サーバー停止中に現在のJSONを退避してから、バックアップを手動で元のファイル名へコピーしてください。
+
 ## complete / claim を同期保存のまま維持する理由
 
 `/quest complete <questId>` は納品アイテムを消費し、その後 `COMPLETED` 状態を保存します。保存に失敗した場合はインベントリsnapshotを戻して失敗を返します。この判断は保存結果を待つ必要があるため、同期保存を維持します。
@@ -89,7 +98,8 @@ debounce保存してはいけないもの:
 
 - 50ms / 200ms の保存warnを監視する
 - `player_quests.json` の肥大化に注意する
-- 手動JSON編集前にはバックアップを取る
+- 手動JSON編集前には `/questadmin storage backup` でバックアップを取る
+- 編集後は `/questadmin storage validate` で構文と内容を確認する
 - ピーク時間帯の大量管理者編集を避ける
 - claim保存失敗は報酬支払い絡みのインシデントとして扱う
 

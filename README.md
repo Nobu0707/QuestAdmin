@@ -5,8 +5,8 @@ QuestAdmin は、Forge 1.20.1 向けのクエスト管理MODです。
 
 ## MOD概要
 
-QuestAdmin v1.0.5 は ITEM_DELIVERY クエストに対応した v1.0.0 MVP の安定化版です。
-Phase 11.6 では保存I/O計測、遅い保存の警告ログ、管理者向け保存状態確認コマンドを追加しています。
+QuestAdmin v1.0.6 は ITEM_DELIVERY クエストに対応した v1.0.0 MVP の安定化版です。
+Phase 11.7 では保存ファイルの手動バックアップ、バックアップ一覧、保存ファイル検証コマンドを追加しています。
 
 管理者は `/questadmin` のGUIとチャット入力ステップでクエストを管理できます。
 プレイヤーは `/quest` のGUIまたはコマンドからクエストの確認、完了、報酬受け取りを行えます。
@@ -18,7 +18,7 @@ Phase 11.6 では保存I/O計測、遅い保存の警告ログ、管理者向け
 - Java 17
 - Lightman's Currency 1.20.1-2.3.0.4e などの Forge 1.20.1 対応版
 - mod id: `questadmin`
-- 現在のバージョン: `1.0.5`
+- 現在のバージョン: `1.0.6`
 
 ## 必須MOD
 
@@ -45,7 +45,7 @@ libs/lightmanscurrency-1.20.1-2.3.0.4e.jar
 
 1. Forge 1.20.1 サーバーを用意します。
 2. `mods` フォルダへ Lightman's Currency を入れます。
-3. `mods` フォルダへ `questadmin-1.0.5.jar` を入れます。
+3. `mods` フォルダへ `questadmin-1.0.6.jar` を入れます。
 4. サーバーを起動します。
 5. 初回起動時、必要に応じて `config/questadmin/quests.json` と `config/questadmin/player_quests.json` が生成されます。
 
@@ -53,7 +53,7 @@ libs/lightmanscurrency-1.20.1-2.3.0.4e.jar
 
 1. Forge 1.20.1 クライアントを用意します。
 2. `mods` フォルダへ Lightman's Currency を入れます。
-3. `mods` フォルダへ `questadmin-1.0.5.jar` を入れます。
+3. `mods` フォルダへ `questadmin-1.0.6.jar` を入れます。
 4. サーバーへ接続します。
 
 ## 主な機能
@@ -98,6 +98,9 @@ OP権限レベル2以上が必要です。
 /questadmin list <page>
 /questadmin sessions
 /questadmin storage status
+/questadmin storage backup
+/questadmin storage backups
+/questadmin storage validate
 /questadmin economy status
 /questadmin progress <player>
 /questadmin progress mark <player> <questId> <status>
@@ -165,12 +168,15 @@ confirm
 
 GUI操作時もサーバー側で権限確認を行います。
 
-### reload / storage status / economy status
+### reload / storage / economy status
 
 - `/questadmin reload` で `quests.json` を再読み込みします。
 - `/questadmin list` は1ページ10件表示です。ページ指定は `/questadmin list 2` のように実行します。
 - `/questadmin sessions` で現在の作成/編集セッション数を確認できます。
 - `/questadmin storage status` で `quests.json` / `player_quests.json` の保存時間、成功/失敗回数、atomic fallback回数を確認できます。
+- `/questadmin storage backup` で現在の `quests.json` / `player_quests.json` を手動バックアップします。
+- `/questadmin storage backups` で直近のバックアップを最大10件表示します。
+- `/questadmin storage validate` で現在の保存ファイルを読み込み専用で検証します。
 - `/questadmin economy status` で Lightman's Currency 連携状態を確認します。
 
 ## プレイヤー向け使い方
@@ -196,6 +202,8 @@ GUI操作時もサーバー側で権限確認を行います。
 保存処理は一時ファイルへ書き込んでから置換し、`ATOMIC_MOVE` 非対応環境では非atomic置換へfallbackします。
 読み込み・保存後は `QuestStorage` 内部でquestId検索インデックスを再構築します。
 保存に50ms以上かかった場合は遅い保存としてwarnログを出し、200ms以上ではより強いwarnログを出します。ログ過多を避けるため、同種の警告は短時間で抑制されます。
+手動バックアップは `config/questadmin/backups/` にタイムスタンプ付きで保存されます。`quests.json` と `player_quests.json` はそれぞれ最新10件程度に制限され、古いバックアップは削除されます。
+QuestAdminは自動復元や復元コマンドを提供しません。復元が必要な場合はサーバーを停止し、対象JSONを別場所へ退避してから、バックアップファイルを手動で元のファイル名へコピーしてください。
 安全性優先のため、`/quest complete <questId>`、`/quest claim <questId>`、`/questadmin progress mark ...` は現時点でも同期保存を維持しています。
 保存方針の詳細は `docs/STORAGE_IO_STRATEGY.md` を参照してください。
 
@@ -222,4 +230,5 @@ GUI操作時もサーバー側で権限確認を行います。
 - 討伐、採掘、探索、デイリー、クエストツリー、前提クエストは未実装です。
 - クエスト削除や編集を行っても、既存の `player_quests.json` の進行状況は変更しません。
 - 無効化されたクエストはプレイヤー用一覧やGUIに表示されず、完了・報酬受け取りもできません。
-- 手動でJSONを編集する場合は事前バックアップを推奨します。
+- 手動でJSONを編集する場合は `/questadmin storage backup` で事前バックアップを作成してください。
+- バックアップからの復元は自動では行われません。誤復元による進行巻き戻りや二重支払いを避けるため、必ずサーバー停止中に手動で実施してください。

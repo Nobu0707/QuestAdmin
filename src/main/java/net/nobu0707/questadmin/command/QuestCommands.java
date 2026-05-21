@@ -22,7 +22,9 @@ import net.nobu0707.questadmin.quest.QuestRequirement;
 import net.nobu0707.questadmin.quest.QuestRewardService;
 import net.nobu0707.questadmin.quest.QuestStatus;
 import net.nobu0707.questadmin.quest.QuestStorage;
+import net.nobu0707.questadmin.quest.StorageBackupService;
 import net.nobu0707.questadmin.quest.StorageMetrics;
+import net.nobu0707.questadmin.quest.StorageValidationService;
 import net.nobu0707.questadmin.quest.StorageWriteStats;
 import net.minecraftforge.event.RegisterCommandsEvent;
 
@@ -56,7 +58,13 @@ public final class QuestCommands {
                         .executes(context -> showSessionCounts(context.getSource())))
                 .then(Commands.literal("storage")
                         .then(Commands.literal("status")
-                                .executes(context -> showStorageStatus(context.getSource()))))
+                                .executes(context -> showStorageStatus(context.getSource())))
+                        .then(Commands.literal("backup")
+                                .executes(context -> backupStorage(context.getSource())))
+                        .then(Commands.literal("backups")
+                                .executes(context -> listStorageBackups(context.getSource())))
+                        .then(Commands.literal("validate")
+                                .executes(context -> validateStorage(context.getSource()))))
                 .then(Commands.literal("create")
                         .then(Commands.literal("cancel")
                                 .executes(context -> cancelQuestCreation(context.getSource()))))
@@ -194,6 +202,83 @@ public final class QuestCommands {
             );
         }
         return stats.size();
+    }
+
+    private static int backupStorage(CommandSourceStack source) {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
+        StorageBackupService service = createBackupService();
+        StorageBackupService.BackupResult result = service.backupNow();
+        source.sendSuccess(() -> Component.literal("QuestAdmin Storage Backup:"), false);
+        for (StorageBackupService.BackupFileResult fileResult : result.files()) {
+            if (fileResult.success()) {
+                source.sendSuccess(
+                        () -> Component.literal("- " + fileResult.kind() + ": OK -> "
+                                + service.backupDirectory().relativize(fileResult.backupPath()).getFileName()),
+                        false
+                );
+            } else {
+                source.sendFailure(Component.literal("- " + fileResult.kind() + ": FAILED - " + fileResult.errorMessage()));
+            }
+        }
+        source.sendSuccess(() -> Component.literal("- directory: " + service.backupDirectory()), false);
+        source.sendSuccess(() -> Component.literal("- retention: latest " + service.retentionPerKind() + " per file type"), false);
+        return result.success() ? 1 : 0;
+    }
+
+    private static int listStorageBackups(CommandSourceStack source) {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
+        StorageBackupService service = createBackupService();
+        List<StorageBackupService.BackupFileInfo> backups = service.listBackups(10);
+        source.sendSuccess(() -> Component.literal("QuestAdmin Storage Backups:"), false);
+        if (backups.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("- バックアップはありません。"), false);
+            return 0;
+        }
+
+        for (StorageBackupService.BackupFileInfo backup : backups) {
+            source.sendSuccess(
+                    () -> Component.literal("- " + backup.kind()
+                            + " | " + backup.fileName()
+                            + " | size=" + backup.sizeBytes() + " bytes"
+                            + " | modified=" + backup.formattedModifiedTime()),
+                    false
+            );
+        }
+        return backups.size();
+    }
+
+    private static int validateStorage(CommandSourceStack source) {
+        if (!hasAdminPermission(source)) {
+            return sendNoAdminPermission(source);
+        }
+
+        StorageValidationService.ValidationReport report = new StorageValidationService().validate(
+                QuestAdminMod.getQuestStorage().getQuestsPath(),
+                QuestAdminMod.getPlayerQuestStorage().getPlayerQuestsPath()
+        );
+
+        source.sendSuccess(() -> Component.literal("QuestAdmin Storage Validate:"), false);
+        source.sendSuccess(
+                () -> Component.literal("- quests.json: " + validationLabel(report.quests().success())
+                        + ", valid=" + report.quests().validCount()
+                        + ", skipped=" + report.quests().skippedCount()),
+                false
+        );
+        source.sendSuccess(
+                () -> Component.literal("- player_quests.json: " + validationLabel(report.playerQuests().success())
+                        + ", players=" + report.playerQuests().playerCount()
+                        + ", entries=" + report.playerQuests().entryCount()
+                        + ", warnings=" + report.playerQuests().warningCount()),
+                false
+        );
+        sendValidationIssues(source, report);
+        return report.success() ? 1 : 0;
     }
 
     private static int openAdminQuestGui(CommandSourceStack source) throws CommandSyntaxException {
@@ -430,6 +515,13 @@ public final class QuestCommands {
         );
     }
 
+    private static StorageBackupService createBackupService() {
+        return new StorageBackupService(
+                QuestAdminMod.getQuestStorage().getQuestsPath(),
+                QuestAdminMod.getPlayerQuestStorage().getPlayerQuestsPath()
+        );
+    }
+
     private static QuestStatus parseStatus(String statusName) {
         try {
             return QuestStatus.valueOf(statusName.toUpperCase(Locale.ROOT));
@@ -444,6 +536,31 @@ public final class QuestCommands {
         }
         if (pageRange.currentPage() > 1) {
             source.sendSuccess(() -> Component.literal("前のページ: " + command + " " + (pageRange.currentPage() - 1)), false);
+        }
+    }
+
+    private static String validationLabel(boolean success) {
+        return success ? "OK" : "ERROR";
+    }
+
+    private static void sendValidationIssues(CommandSourceStack source, StorageValidationService.ValidationReport report) {
+        List<StorageValidationService.StorageValidationIssue> issues = new java.util.ArrayList<>();
+        issues.addAll(report.quests().issues());
+        issues.addAll(report.playerQuests().issues());
+
+        int displayLimit = Math.min(10, issues.size());
+        for (int index = 0; index < displayLimit; index++) {
+            StorageValidationService.StorageValidationIssue issue = issues.get(index);
+            Component message = Component.literal("- " + issue.severity() + " " + issue.fileName() + ": " + issue.message());
+            if (issue.error()) {
+                source.sendFailure(message);
+            } else {
+                source.sendSuccess(() -> message, false);
+            }
+        }
+
+        if (issues.size() > displayLimit) {
+            source.sendSuccess(() -> Component.literal("- 他 " + (issues.size() - displayLimit) + " 件の問題があります。"), false);
         }
     }
 

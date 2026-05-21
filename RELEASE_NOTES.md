@@ -1,5 +1,32 @@
 # Release Notes
 
+## QuestAdmin 1.0.6
+
+### 概要
+
+v1.0.0 MVP の安定化版です。
+Phase 11.7 として、50人以上の同時接続運用や手動JSON編集事故に備え、保存ファイルの手動バックアップ、バックアップ一覧、読み込み専用の検証コマンドを追加しました。
+
+### 変更内容
+
+- `/questadmin storage backup` を追加し、`quests.json` / `player_quests.json` を手動バックアップ可能に変更
+- バックアップ保存先を `config/questadmin/backups/` に統一
+- バックアップファイル名をタイムスタンプ付きに変更
+- `quests.json` / `player_quests.json` それぞれ最新10件程度にバックアップ世代を制限
+- `/questadmin storage backups` を追加し、直近のバックアップを最大10件表示
+- `/questadmin storage validate` を追加し、現在の保存ファイルを読み込み専用で検証
+- `quests.json` のJSON構文、questId重複、QuestValidator検証、ITEM_DELIVERY制限、amount / reward / itemId を検証
+- `player_quests.json` のJSON構文、UUID、既知status、不明questId警告を検証
+- 自動復元、復元コマンド、保存のたびの自動バックアップは未実装のまま維持
+- 安全性優先のため、`/quest complete <questId>`、`/quest claim <questId>`、`/questadmin progress mark ...` は同期保存を維持
+
+### 配布物
+
+- `build/libs/questadmin-1.0.6.jar`
+
+QuestAdmin jar に Lightman's Currency 本体は同梱していません。
+Lightman's Currency はサーバーとクライアント双方の `mods` フォルダへ別途配置してください。
+
 ## QuestAdmin 1.0.5
 
 ### 概要
